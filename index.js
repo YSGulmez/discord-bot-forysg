@@ -94,6 +94,13 @@ async function fetchEpicFreeGames() {
     .filter((item) => {
       const price = item?.price?.totalPrice;
       const isFree = price?.discountPrice === 0 && price?.originalPrice === 0;
+      console.log("[DEBUG EPIC FILTER]", {
+        title: item?.title || item?.name,
+        price: price,
+        isFree: isFree,
+        hasPromo: item?.promotions?.promotionalOffers?.length > 0,
+        hasSlug: !!item?.productSlug
+      });
       return isFree && (item?.promotions?.promotionalOffers?.length > 0 || item?.productSlug);
     });
   console.log("[DEBUG] Epic Games filtrelenmiş oyun sayısı:", filtered.length);
@@ -126,6 +133,12 @@ async function fetchSteamFreeGames() {
     .filter((item) => {
       const finalPrice = Number(item?.price?.final ?? 0);
       const initialPrice = Number(item?.price?.initial ?? 0);
+      console.log("[DEBUG STEAM FILTER]", {
+        title: item?.name,
+        finalPrice: finalPrice,
+        initialPrice: initialPrice,
+        isFree: finalPrice <= 0 && initialPrice > 0
+      });
       return finalPrice <= 0 && initialPrice > 0;
     });
   console.log("[DEBUG] Steam filtrelenmiş oyun sayısı:", filtered.length);
