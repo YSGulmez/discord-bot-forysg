@@ -126,7 +126,12 @@ Duraktaki tüm komutlar aşağıdadır:
       .setFooter({ text: "Akasya Durağı Sinema Kulübü Sunar 🍿" })
       .setTimestamp();
 
-    return message.reply({ embeds: [embed] });
+    try {
+      return message.reply({ embeds: [embed] });
+    } catch (err) {
+      console.error(err);
+      return message.reply("Embed göndermek için yetkim yetmiyor usta! Lütfen bot rolümün izinlerini kontrol et.");
+    }
   }
 
   // AVENGERS DOOMSDAY SAYACI
@@ -143,7 +148,12 @@ Duraktaki tüm komutlar aşağıdadır:
       .setFooter({ text: "Melahat duymasın, bilet parası Sinan'dan! 🚖" })
       .setTimestamp();
 
-    return message.reply({ embeds: [embed] });
+    try {
+      return message.reply({ embeds: [embed] });
+    } catch (err) {
+      console.error(err);
+      return message.reply("Embed göndermek için yetkim yetmiyor usta! Lütfen bot rolümün izinlerini kontrol et.");
+    }
   }
 
   // ==========================================
@@ -316,6 +326,15 @@ Duraktaki tüm komutlar aşağıdadır:
         message.reply("Yasaklama işlemi başarısız oldu usta!");
       });
   }
+});
+
+// Global error handler
+client.on("error", (error) => {
+  console.error("Bot hatası:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("İşlem Rejection:", reason);
 });
 
 client.login(process.env.TOKEN);
