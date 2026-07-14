@@ -448,6 +448,9 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
 
     return message.reply({ embeds: [embed] });
   }
+  if (msg === "sa") {
+    return message.reply("Aleyküm selam usta! Nasılsın? 🚖");
+  }
 
   // ==========================================
   // 3. SES KANALINA GİRİP SES DOSYASI OYNATMA
