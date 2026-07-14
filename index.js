@@ -92,45 +92,70 @@ Duraktaki tüm komutlar aşağıdadır:
     return message.reply(yardimMesaji);
   }
 
+// ==========================================
+// 2. MARVEL SAYAÇ KOMUTLARI
+// ==========================================
+
+
+  function kalanSureyiHesapla(hedefTarih) {
+    const simdi = new Date();
+    const fark = hedefTarih - simdi;
+
+    if (fark <= 0) {
+        return "VİZYONDA! 🍿🎬";
+    }
+
+    const gun = Math.floor(fark / (1000 * 60 * 60 * 24));
+    const saat = Math.floor((fark % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const dakika = Math.floor((fark % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `⏳ **${gun} Gün, ${saat} Saat, ${dakika} Dakika** kaldı!`;
+}
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    const msg = message.content.toLowerCase();
+    const args = message.content.split(' ');
+
+    // ==========================================
+    // 1. MARVEL SAYAÇ KOMUTLARI
+    // ==========================================
+
+    // SPIDER-MAN 4 SAYACI
+    if (msg === '!spiderman' || msg === '!spiderman4' || msg === '!örümcekadam') {
+        const vizyonTarihi = new Date('2026-07-31T00:00:00+03:00'); // TR saati ile vizyon
+        const kalan = kalanSureyiHesapla(vizyonTarihi);
+
+        const embed = new EmbedBuilder()
+            .setTitle("🕷️ Spider-Man: Brand New Day Sayacı")
+            .setDescription(`Tom Holland'ın başrolünde olduğu yeni Örümcek Adam macerasının vizyona girmesine:\n\n${kalan}`)
+            .setColor('#E23636') // Örümcek Adam kırmızısı
+            .setThumbnail('https://i.ibb.co/v4b4XqY/sinan-kaya.jpg') // İstersen buraya film afişi linki de koyabilirsin usta
+            .setFooter({ text: "Akasya Durağı Sinema Kulübü Sunar 🍿" })
+            .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+    }
+
+    // AVENGERS DOOMSDAY SAYACI
+    if (msg === '!doomsday' || msg === '!avengers' || msg === '!kıyamet') {
+        const vizyonTarihi = new Date('2026-12-18T00:00:00+03:00'); // TR saati ile vizyon
+        const kalan = kalanSureyiHesapla(vizyonTarihi);
+
+        const embed = new EmbedBuilder()
+            .setTitle("🟢 Avengers: Doomsday Sayacı")
+            .setDescription(`Robert Downey Jr.'ın **Doctor Doom** olarak Marvel evrenine döndüğü devasa filmin vizyona girmesine:\n\n${kalan}`)
+            .setColor('#107C10') // Doctor Doom yeşili
+            .setFooter({ text: "Melahat duymasın, bilet parası Sinan'dan! 🚖" })
+            .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+    }
+
   // ==========================================
   // 2. MİZAHİ & EĞLENCE KOMUTLARI (ZİBİLYON TANE)
   // ==========================================
-  if (msg === "sinan" || msg === "sinan kaya" || msg === "sinankaya") {
-    message.reply(
-      "Kardeş bittim ben, bittim! Melahat eve almadı, takside yatıyorum usta! 🚕 Kaynanam da yine büyü yaptırmış kesin!",
-    );
-  }
-
-  if (msg === "usman aga" || msg === "usmanaga") {
-    message.reply({
-      content:
-        "Ulan Sinan, vurucam seni ha! Trakya kızanıyım ben, şaka mika istemem be ya! Alıcam baltayı elime şimdi! 🪓",
-        files: [
-          {
-            attachment: path.join(__dirname, "Sounds", "Taksi.mp3"),
-          }
-        ]
-    });
-  }
-
-  if (msg === "nuri baba" || msg === "nuribaba") {
-    message.reply(
-      "Evlatlarım, benim canım şoförlerim... Durakta kavga istemiyorum. Herkes ekmeğinin peşinde koşsun! 👨‍✈️☕",
-    );
-  }
-
-  if (msg === "arif" || msg === "arif ışık") {
-    message.reply(
-      "Usta, şair ne güzel demiş: 'Yollar uzun, hayat kısa, bir taksi çağır Akasya'dan gelmezse dert etme tasa...' 🚖✍️",
-    );
-  }
-
-  if (msg === "temel") {
-    message.reply(
-      "Uyyy kuymak kafalım benum! Ha pen şimdi siza Trabzon'dan taze hamsi getireceğum da! 🐟",
-    );
-  }
-
   if (msg === "!replik") {
     const rastgeleReplik =
       replikler[Math.floor(Math.random() * replikler.length)];
