@@ -102,9 +102,11 @@ Duraktaki tüm komutlar aşağıdadır:
   }
 
   if (msg === "usman aga" || msg === "usmanaga") {
-    message.reply(
-      "Ulan Sinan, vurucam seni ha! Trakya kızanıyım ben, şaka mika istemem be ya! Alıcam baltayı elime şimdi! 🪓",
-    );
+    message.reply({
+      content:
+        "Ulan Sinan, vurucam seni ha! Trakya kızanıyım ben, şaka mika istemem be ya! Alıcam baltayı elime şimdi! 🪓",
+      files: ["https://i.ibb.co/v4b4XqY/sinan-kaya.jpg"],
+    });
   }
 
   if (msg === "nuri baba" || msg === "nuribaba") {
