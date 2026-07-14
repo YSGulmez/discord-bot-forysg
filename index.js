@@ -29,7 +29,6 @@ const path = require("path");
 const stateFilePath = path.join(__dirname, "free-games-state.json");
 const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID;
 const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
-// Aternos ve Minecraft takibi devre dışı bırakıldı
 
 const client = new Client({
   intents: [
@@ -449,7 +448,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     return message.reply({ embeds: [embed] });
   }
   if (msg === "sa") {
-    return message.reply("Aleyküm selam usta! Nasılsın? 🚖");
+    return message.reply("Aleyküm selam uşağım! Nasılsın? 🚖");
   }
 
   // ==========================================
