@@ -127,7 +127,7 @@ Duraktaki tüm komutlar aşağıdadır:
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator,
             });
 
-            const resource = createAudioResource(path.join(__dirname, 'sesler', 'Taksi.mp3'));
+            const resource = createAudioResource(path.join(__dirname, 'Sounds', 'Taksi.mp3'));
             const player = createAudioPlayer();
 
             player.play(resource);
