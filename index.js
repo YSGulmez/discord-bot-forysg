@@ -497,7 +497,73 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   }
 
   // ==========================================
-  // 4. MODERASYON (GÜVENLİK) SİSTEMİ
+  // 4. RASTGELE TAKIM BÖLME KOMUTU (!takım)
+  // ==========================================
+
+  if (msg === "!takım" || msg === "!takim" || msg === "!vs") {
+    // 1. Kullanıcının bir ses kanalında olup olmadığını kontrol et
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) {
+      return message.reply(
+        "Usta, takımları bölmek için önce bir ses kanalına girmen lazım! Telsizden kura çekemeyiz. 🎙️",
+      );
+    }
+
+    // 2. Ses kanalındaki üyeleri al ve BOTLARI FİLTRELE
+    // Sadece gerçek kullanıcıların sunucudaki isimlerini (displayName) bir diziye ekliyoruz
+    const gercekUyeler = voiceChannel.members
+      .filter((member) => !member.user.bot)
+      .map((member) => member.displayName);
+
+    // 3. Yeterli kişi var mı kontrolü
+    if (gercekUyeler.length < 2) {
+      return message.reply(
+        "Usta seste tek başınasın (veya sadece botlar var). Kendi kendinle mi kapışacaksın? 🚖",
+      );
+    }
+
+    // 4. Üyeleri Rastgele Karıştır (Fisher-Yates Shuffle algoritması)
+    for (let i = gercekUyeler.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [gercekUyeler[i], gercekUyeler[j]] = [gercekUyeler[j], gercekUyeler[i]];
+    }
+
+    // 5. Takımları İkiye Böl
+    const yari = Math.ceil(gercekUyeler.length / 2);
+    const takim1 = gercekUyeler.slice(0, yari);
+    const takim2 = gercekUyeler.slice(yari);
+
+    // 6. Şık bir mesaj (Embed) ile sonucu göster
+    const takimEmbed = new EmbedBuilder()
+      .setTitle("⚔️ Akasya Durağı Kapışması Başlıyor!")
+      .setDescription(
+        "Müzik botları çöpe atıldı, kalan aslanlar rastgele iki takıma bölündü. Gazanız mübarek olsun!",
+      )
+      .setColor("#FF8C00") // Turuncu renk
+      .addFields(
+        {
+          name: "🔴 1. Takım (Usman Aga'nın Aslanları)",
+          value:
+            takim1.map((isim) => `• **${isim}**`).join("\\n") || "Kimse yok",
+          inline: true,
+        },
+        {
+          name: "🔵 2. Takım (Nuri Baba'nın Yiğitleri)",
+          value:
+            takim2.map((isim) => `• **${isim}**`).join("\\n") || "Kimse yok",
+          inline: true,
+        },
+      )
+      .setFooter({
+        text: "Hile yapanı, takıma itiraz edeni duraktan kovarım! 🚖",
+      })
+      .setTimestamp();
+
+    return message.reply({ embeds: [takimEmbed] });
+  }
+
+  // ==========================================
+  // 5. MODERASYON (GÜVENLİK) SİSTEMİ
   // ==========================================
 
   // MESAJ SİLME KOMUTU (!sil <sayı>)
