@@ -166,6 +166,18 @@ const replikler = [
   "Ben bu taksiye canımı verdim be! - Arif Işık 🚖",
 ];
 
+// Atatürk görselleri
+const ataturkGorselleri = [
+  "https://upload.wikimedia.org/wikipedia/commons/0/0e/Ataturk1930s.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Atat%C3%BCrk_and_Hitler.jpg/440px-Atat%C3%BCrk_and_Hitler.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Ataturk_-_1926.jpg/440px-Ataturk_-_1926.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Atat%C3%BCrk_colorized.jpg/440px-Atat%C3%BCrk_colorized.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Atat%C3%BCrk_-_1920s.jpg/440px-Atat%C3%BCrk_-_1920s.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Mustafa_Kemal_Atat%C3%BCrk%2C_1929.jpg/440px-Mustafa_Kemal_Atat%C3%BCrk%2C_1929.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Ataturk_1935.jpg/440px-Ataturk_1935.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Atat%C3%BCrk_-_1934.jpg/440px-Atat%C3%BCrk_-_1934.jpg",
+];
+
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -187,6 +199,7 @@ Duraktaki tüm komutlar aşağıdadır:
 • \`arif\` : Arif'in felsefesini dinlersin.
 • \`temel\` : Temel'den bir uyyy alırsın.
 • \`!replik\` : Duraktan rastgele efsane bir replik fırlatır.
+• \`!atatürk\` : Atatürk'ün fotoğrafını gösterir.
 • \`taksi\` / \`taksi yolla\` : Olduğun ses kanalına girer, kornaya basar/replik çalar ve çıkar.
 
  **Ücretsiz Oyun Takibi (GamerPower):**
@@ -348,6 +361,21 @@ Duraktaki tüm komutlar aşağıdadır:
     const rastgeleReplik =
       replikler[Math.floor(Math.random() * replikler.length)];
     message.reply(rastgeleReplik);
+  }
+
+  if (msg === "!atatürk" || msg === "!ataturk") {
+    const rastgeleGorsel =
+      ataturkGorselleri[Math.floor(Math.random() * ataturkGorselleri.length)];
+    
+    const embed = new EmbedBuilder()
+      .setTitle("🇹🇷 Mustafa Kemal Atatürk")
+      .setDescription("Türkiye Cumhuriyeti'nin kurucusu")
+      .setImage(rastgeleGorsel)
+      .setColor("#CE0E2D") // Türk bayrağı kırmızısı
+      .setFooter({ text: "\"Bir millet yeniden dirilişe, terakkiye, medeniyete gidecek yolu kaybetmiş olsa bile, başında bir rehber bulması halinde, bütün engelleri aşarak; yeniden istikbale doğru koşar.\" - Atatürk" })
+      .setTimestamp();
+    
+    return message.reply({ embeds: [embed] });
   }
 
   // ==========================================
