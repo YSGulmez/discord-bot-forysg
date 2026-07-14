@@ -42,6 +42,10 @@ client.on('messageCreate', (message) => {
     if (message.content.toLowerCase() === '!ping') {
         message.reply('Pong! 🏓');
     }
+	
+	if (message.content.toLowerCase() === 'naber'){
+		message.reply('Taksi Lazımdır Ağbey');
+	}
 });
 
 // Developer Portal'dan aldığın Token'ı buraya yapıştır
