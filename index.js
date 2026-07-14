@@ -1,53 +1,93 @@
-// Ücretsiz Render (Web Service) için basit bir web sunucusu ekliyoruz
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-    res.send('Bot aktif ve çalışıyor usta!');
+    res.send('Akasya Durağı 7/24 Aktif usta!');
 });
 
 app.listen(port, () => {
-    console.log(`Web sunucusu ${port} portunda başlatıldı.`);
+    console.log(`Web sunucusu ${port} portunda.`);
 });
 
-//Dc bot
+// --- DİSCORD BOT KODLARI ---
 const { Client, GatewayIntentBits } = require('discord.js');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 
-// Botun kullanacağı yetkileri (Intents) tanımlıyoruz
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates // Ses kanallarını görebilmesi için şart
     ]
 });
 
-// Bot hazır olduğunda konsola yazdıracak
 client.once('ready', () => {
-    console.log(`Bot başarıyla giriş yaptı! Aktif isim: ${client.user.tag}`);
+    console.log('Akasya Durağı telsizi açıldı, bot hazır!');
 });
 
-// Mesajları dinleme ve cevap verme
-client.on('messageCreate', (message) => {
-    // Eğer mesajı yazan bir botsa, sonsuz döngüye girmemek için görmezden gel
+// Akasya Durağı replikleri havuzu
+const replikler = [
+    "Ooo tırnakçı kardeş, naber ya? - Sinan Kaya",
+    "Bana bak Sinan, yine ne haltlar karıştırıyorsun ulan! - Melahat",
+    "Oy kuymak kafalım benim, uyyy! - Temel",
+    "Ulan Sinan, senin yüzünden yine karakolluk olduk! - Usman Aga",
+    "Cezmi bey, tırnakçılara dikkat edelim lütfen. - Mazhar Bey",
+    "Seyit kardeş, memleketten tereyağ getirdin mi da? - Temel"
+];
+
+client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // Basit bir "sa" - "as" komutu
-    if (message.content.toLowerCase() === 'sa') {
-        message.reply('Aleyküm Selam, hoş geldin! usta');
+    const msg = message.content.toLowerCase();
+
+    // 1. MİZAHİ KOMUTLAR
+    if (msg === 'sinan' || msg === 'sinan kaya') {
+        message.reply("Kardeş bittim ben, bittim! Melahat eve almadı, takside yatıyorum usta! 🚕");
     }
 
-    // Ping komutu
-    if (message.content.toLowerCase() === '!ping') {
-        message.reply('Pong! 🏓');
+    if (msg === 'usman aga') {
+        message.reply("Ulan Sinan, vurucam seni ha! Trakya kızanıyım ben, şaka mika istemem be ya! 🪓");
     }
-	
-	if (message.content.toLowerCase() === 'naber'){
-		message.reply('Taksi Lazımdır Ağbey');
-	}
+
+    if (msg === '!replik') {
+        const rastgeleReplik = replikler[Math.floor(Math.random() * replikler.length)];
+        message.reply(rastgeleReplik);
+    }
+
+    // 2. SES KANALINA GİRİP TAKSİ YOLLAMA KOMUTU
+    if (msg === 'taksi' || msg === 'taksi çağır' || msg === 'taksi yolla') {
+        // Kullanıcının ses kanalında olup olmadığını kontrol et
+        const voiceChannel = message.member.voice.channel;
+        
+        if (!voiceChannel) {
+            return message.reply("Usta önce bir ses kanalına gir be ya, taksiyi göğe mi yollayayım?");
+        }
+
+        try {
+            message.reply("Anlaşıldı merkez, Akasya Durağından bir taksi yolluyorum! 🚖");
+
+            // Ses kanalına bağlan
+            const connection = joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: voiceChannel.guild.id,
+                adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+            });
+
+            // NOT: Ses dosyası oynatmak istersen buraya ekleyebilirsin.
+            // Şimdilik kanala girip 4 saniye bekleyip çıkacak şekilde ayarlayalım:
+            
+            setTimeout(() => {
+                connection.destroy(); // Kanaldan çıkış yapar
+                message.channel.send("Taksi adrese ulaştı, müşteri alındı usta! Çıkıyorum.");
+            }, 4000); // 4000 milisaniye = 4 saniye durur
+
+        } catch (error) {
+            console.error(error);
+            message.reply("Taksi yolda kaza yaptı usta, gelemedi! (Ses hatası oluştu)");
+        }
+    }
 });
 
-// Developer Portal'dan aldığın Token'ı buraya yapıştır
-// Tokenı çevre değişkeninden çekecek hale getiriyoruz
 client.login(process.env.TOKEN);
