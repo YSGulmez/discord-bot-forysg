@@ -105,7 +105,11 @@ Duraktaki tüm komutlar aşağıdadır:
     message.reply({
       content:
         "Ulan Sinan, vurucam seni ha! Trakya kızanıyım ben, şaka mika istemem be ya! Alıcam baltayı elime şimdi! 🪓",
-      files: ["https://i.ibb.co/v4b4XqY/sinan-kaya.jpg"],
+        files: [
+          {
+            attachment: path.join(__dirname, "Sounds", "Taksi.mp3"),
+          }
+        ]
     });
   }
 
