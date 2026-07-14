@@ -13,6 +13,7 @@ app.listen(port, () => {
 // --- DİSCORD BOT KODLARI ---
 const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const path = require('path'); // Ses dosyasının yerini bulmak için ekledik usta
 
 const client = new Client({
     intents: [
@@ -75,13 +76,19 @@ client.on('messageCreate', async (message) => {
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator,
             });
 
-            // NOT: Ses dosyası oynatmak istersen buraya ekleyebilirsin.
-            // Şimdilik kanala girip 4 saniye bekleyip çıkacak şekilde ayarlayalım:
+            // Proje klasöründeki sesler/taksi.mp3 dosyasını okuyoruz
+            const resource = createAudioResource(path.join(__dirname, 'sesler', 'taksi.mp3'));
+            const player = createAudioPlayer();
+
+            // Sesi oynatıcıya verip kanala bağlıyoruz
+            player.play(resource);
+            connection.subscribe(player);
             
-            setTimeout(() => {
+            // Replik veya korna sesi bittiğinde kanaldan çıkış yapıyoruz
+            player.on(AudioPlayerStatus.Idle, () => {
                 connection.destroy(); // Kanaldan çıkış yapar
                 message.channel.send("Taksi adrese ulaştı, müşteri alındı usta! Çıkıyorum.");
-            }, 4000); // 4000 milisaniye = 4 saniye durur
+            });
 
         } catch (error) {
             console.error(error);
