@@ -77,24 +77,27 @@ function saveFreeGamesState(state) {
 }
 
 async function fetchEpicFreeGames() {
+  console.log("[DEBUG] Epic Games API çağrılıyor...");
   const response = await fetch(
     "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=TR&allowCountries=TR",
   );
 
   if (!response.ok) {
+    console.error(`[ERROR] Epic Games API hatası: ${response.status}`);
     throw new Error(`Epic Games API hatası: ${response.status}`);
   }
 
   const data = await response.json();
+  console.log("[DEBUG] Epic Games raw data elements sayısı:", data?.data?.Catalog?.searchStore?.elements?.length);
   const elements = data?.data?.Catalog?.searchStore?.elements || [];
-
-  return elements
+  const filtered = elements
     .filter((item) => {
       const price = item?.price?.totalPrice;
       const isFree = price?.discountPrice === 0 && price?.originalPrice === 0;
       return isFree && (item?.promotions?.promotionalOffers?.length > 0 || item?.productSlug);
-    })
-    .map((item) => ({
+    });
+  console.log("[DEBUG] Epic Games filtrelenmiş oyun sayısı:", filtered.length);
+  return filtered.map((item) => ({
       source: "epic",
       title: item.title || item.name || "Bilinmeyen Oyun",
       slug: `epic:${item.productSlug || item.urlSlug || item.title || ""}`,
@@ -108,22 +111,25 @@ async function fetchEpicFreeGames() {
 }
 
 async function fetchSteamFreeGames() {
+  console.log("[DEBUG] Steam API çağrılıyor...");
   const response = await fetch("https://store.steampowered.com/api/featuredcategories/");
 
   if (!response.ok) {
+    console.error(`[ERROR] Steam API hatası: ${response.status}`);
     throw new Error(`Steam API hatası: ${response.status}`);
   }
 
   const data = await response.json();
+  console.log("[DEBUG] Steam raw specials sayısı:", data?.specials?.items?.length);
   const specials = data?.specials?.items || [];
-
-  return specials
+  const filtered = specials
     .filter((item) => {
       const finalPrice = Number(item?.price?.final ?? 0);
       const initialPrice = Number(item?.price?.initial ?? 0);
       return finalPrice <= 0 && initialPrice > 0;
-    })
-    .map((item) => ({
+    });
+  console.log("[DEBUG] Steam filtrelenmiş oyun sayısı:", filtered.length);
+  return filtered.map((item) => ({
       source: "steam",
       title: item.name || "Bilinmeyen Steam Oyunu",
       slug: `steam:${item.id || item.name}`,
@@ -212,13 +218,20 @@ async function getMinecraftServerStatus() {
 }
 
 async function controlAternosServer(action) {
+  console.log("[DEBUG] Aternos API çağrısı başlıyor...");
+  console.log("[DEBUG] Action:", action);
+  console.log("[DEBUG] Server ID:", ATERNOS_SERVER_ID);
+  console.log("[DEBUG] Cookie boş mu?", !ATERNOS_SESSION_COOKIE);
+  
   if (!ATERNOS_SERVER_ID) {
+    console.error("[ERROR] ATERNOS_SERVER_ID tanımlı değil.");
     throw new Error("ATERNOS_SERVER_ID tanımlı değil.");
   }
 
   // Action'ı endpoint'e çevir
   const endpoint = ATERNOS_API_ENDPOINTS[action];
   if (!endpoint) {
+    console.error("[ERROR] Geçersiz Aternos aksiyonu:", action);
     throw new Error(`Geçersiz Aternos aksiyonu: ${action}`);
   }
 
@@ -239,7 +252,10 @@ async function controlAternosServer(action) {
     headers.Authorization = ATERNOS_AUTH_HEADER;
   }
 
-  const response = await fetch(`${ATERNOS_API_BASE_URL}${endpoint}/${ATERNOS_SERVER_ID}`, {
+  const url = `${ATERNOS_API_BASE_URL}${endpoint}/${ATERNOS_SERVER_ID}`;
+  console.log("[DEBUG] Request URL:", url);
+  
+  const response = await fetch(url, {
     method: "POST",
     headers,
   });
