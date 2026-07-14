@@ -31,6 +31,17 @@ const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID || "152666110160
 const FREE_GAMES_CHECK_INTERVAL_MS = Number(
   process.env.FREE_GAMES_CHECK_INTERVAL_MS || 1800000,
 );
+const MC_SERVER_HOST = process.env.MC_SERVER_HOST || "akasya_duragi.aternos.me";
+const MC_SERVER_PORT = process.env.MC_SERVER_PORT || "25565";
+const MC_SERVER_CHANNEL_ID = process.env.MC_SERVER_CHANNEL_ID || FREE_GAMES_CHANNEL_ID;
+const MC_SERVER_CHECK_INTERVAL_MS = Number(
+  process.env.MC_SERVER_CHECK_INTERVAL_MS || 60000,
+);
+const ATERNOS_SERVER_ID = process.env.ATERNOS_SERVER_ID;
+const ATERNOS_API_BASE_URL = process.env.ATERNOS_API_BASE_URL || "https://aternos.org/api";
+const ATERNOS_SESSION_COOKIE = process.env.ATERNOS_SESSION_COOKIE || process.env.ATERNOS_COOKIE;
+const ATERNOS_SESSION_TOKEN = process.env.ATERNOS_SESSION_TOKEN;
+const ATERNOS_AUTH_HEADER = process.env.ATERNOS_AUTH_HEADER;
 
 const client = new Client({
   intents: [
@@ -44,9 +55,13 @@ const client = new Client({
 
 function loadFreeGamesState() {
   try {
-    return JSON.parse(fs.readFileSync(stateFilePath, "utf8"));
+    const state = JSON.parse(fs.readFileSync(stateFilePath, "utf8"));
+    return {
+      lastNotified: Array.isArray(state.lastNotified) ? state.lastNotified : [],
+      minecraftWasOnline: Boolean(state.minecraftWasOnline),
+    };
   } catch {
-    return { lastNotified: [] };
+    return { lastNotified: [], minecraftWasOnline: false };
   }
 }
 
@@ -170,6 +185,122 @@ async function notifyFreeGames() {
   }
 }
 
+async function getMinecraftServerStatus() {
+  const response = await fetch(
+    `https://api.mcsrvstat.us/2/${MC_SERVER_HOST}${MC_SERVER_PORT ? `:${MC_SERVER_PORT}` : ""}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Minecraft API hatası: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    online: Boolean(data?.online),
+    playersOnline: data?.players?.online ?? 0,
+    playersMax: data?.players?.max ?? 0,
+    version: data?.version || "Bilinmiyor",
+    hostname: data?.hostname || `${MC_SERVER_HOST}:${MC_SERVER_PORT}`,
+  };
+}
+
+async function controlAternosServer(action) {
+  if (!ATERNOS_SERVER_ID) {
+    throw new Error("ATERNOS_SERVER_ID tanımlı değil.");
+  }
+
+  const headers = {
+    "User-Agent": "Mozilla/5.0",
+    Accept: "application/json",
+  };
+
+  if (ATERNOS_SESSION_COOKIE) {
+    headers.Cookie = ATERNOS_SESSION_COOKIE;
+  }
+
+  if (ATERNOS_SESSION_TOKEN) {
+    headers["X-Session-Token"] = ATERNOS_SESSION_TOKEN;
+  }
+
+  if (ATERNOS_AUTH_HEADER) {
+    headers.Authorization = ATERNOS_AUTH_HEADER;
+  }
+
+  const response = await fetch(`${ATERNOS_API_BASE_URL}/server/${ATERNOS_SERVER_ID}/${action}`, {
+    method: "POST",
+    headers,
+  });
+
+  const text = await response.text();
+  let payload = text;
+
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    // Plain text response, ignore
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    payload,
+  };
+}
+
+async function notifyMinecraftServerStatus() {
+  if (!MC_SERVER_HOST || !MC_SERVER_CHANNEL_ID) {
+    return;
+  }
+
+  try {
+    const state = loadFreeGamesState();
+    const status = await getMinecraftServerStatus();
+    const wasOnline = Boolean(state.minecraftWasOnline);
+    const isOnline = status.online;
+
+    if (isOnline && !wasOnline) {
+      const channel =
+        client.channels.cache.get(MC_SERVER_CHANNEL_ID) ||
+        (await client.channels.fetch(MC_SERVER_CHANNEL_ID).catch(() => null));
+
+      if (channel?.send) {
+        const embed = new EmbedBuilder()
+          .setTitle("🟢 Aternos Sunucusu Açıldı")
+          .setDescription(
+            `${status.hostname} adresindeki sunucu artık açık!\n\nAktif oyuncu: ${status.playersOnline}/${status.playersMax}\nSürüm: ${status.version}`,
+          )
+          .setColor("#2ECC71")
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
+      }
+    }
+
+    if (!isOnline && wasOnline) {
+      const channel =
+        client.channels.cache.get(MC_SERVER_CHANNEL_ID) ||
+        (await client.channels.fetch(MC_SERVER_CHANNEL_ID).catch(() => null));
+
+      if (channel?.send) {
+        const embed = new EmbedBuilder()
+          .setTitle("🔴 Aternos Sunucusu Kapandı")
+          .setDescription(
+            `${status.hostname} adresindeki sunucu şu an kapalı.`,
+          )
+          .setColor("#E74C3C")
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
+      }
+    }
+
+    state.minecraftWasOnline = isOnline;
+    saveFreeGamesState(state);
+  } catch (error) {
+    console.error("Minecraft sunucu takip hatası:", error);
+  }
+}
+
 client.once("ready", () => {
   console.log("Akasya Durağı telsizi açıldı, bot hazır!");
 
@@ -183,6 +314,14 @@ client.once("ready", () => {
     setInterval(notifyFreeGames, FREE_GAMES_CHECK_INTERVAL_MS);
     console.log(
       `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Aralık: ${FREE_GAMES_CHECK_INTERVAL_MS / 1000} sn`,
+    );
+  }
+
+  if (MC_SERVER_HOST) {
+    notifyMinecraftServerStatus();
+    setInterval(notifyMinecraftServerStatus, MC_SERVER_CHECK_INTERVAL_MS);
+    console.log(
+      `Minecraft sunucu takibi aktif. Sunucu: ${MC_SERVER_HOST}:${MC_SERVER_PORT} | Aralık: ${MC_SERVER_CHECK_INTERVAL_MS / 1000} sn`,
     );
   }
 });
@@ -233,6 +372,52 @@ Duraktaki tüm komutlar aşağıdadır:
 *Akasya Durağı her zaman 10 numara hizmet verir!* 🚖
         `;
     return message.reply(yardimMesaji);
+  }
+
+  if (msg === "!aternos" || msg === "!mc" || msg === "!minecraft") {
+    try {
+      const status = await getMinecraftServerStatus();
+      const durum = status.online ? "🟢 Açık" : "🔴 Kapalı";
+      return message.reply(
+        `Aternos sunucu durumu: **${durum}**\nAdres: ${status.hostname}\nOyuncu: ${status.playersOnline}/${status.playersMax}\nSürüm: ${status.version}`,
+      );
+    } catch (error) {
+      console.error(error);
+      return message.reply("Sunucu durumu kontrol edilemedi usta.");
+    }
+  }
+
+  if (msg.startsWith("!aternos ") || msg.startsWith("!mc ") || msg.startsWith("!minecraft ")) {
+    const action = args[1]?.toLowerCase();
+    const actionText = args.slice(1).join(" ").toLowerCase();
+
+    if (["start", "başlat", "ac", "aç"].includes(action || actionText)) {
+      try {
+        const result = await controlAternosServer("start");
+        if (result.ok) {
+          return message.reply("Aternos sunucusu başlatma isteği gönderildi usta. ⏳");
+        }
+        return message.reply(`Başlatma isteği gönderilemedi. Durum: ${result.status}`);
+      } catch (error) {
+        console.error(error);
+        return message.reply("Başlatma komutu çalıştırılamadı. Aternos ayarlarını kontrol et.");
+      }
+    }
+
+    if (["stop", "durdur", "kapat", "kapat"].includes(action || actionText)) {
+      try {
+        const result = await controlAternosServer("stop");
+        if (result.ok) {
+          return message.reply("Aternos sunucusu kapatma isteği gönderildi usta. ⏳");
+        }
+        return message.reply(`Kapatma isteği gönderilemedi. Durum: ${result.status}`);
+      } catch (error) {
+        console.error(error);
+        return message.reply("Kapatma komutu çalıştırılamadı. Aternos ayarlarını kontrol et.");
+      }
+    }
+
+    return message.reply("Kullanım: `!aternos start` | `!aternos stop` | `!aternos` ⚙️");
   }
 
   // ==========================================
