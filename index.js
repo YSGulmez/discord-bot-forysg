@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("fs");
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -25,6 +26,11 @@ const {
   AudioPlayerStatus,
 } = require("@discordjs/voice");
 const path = require("path");
+const stateFilePath = path.join(__dirname, "free-games-state.json");
+const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID || "1526661101608112158";
+const FREE_GAMES_CHECK_INTERVAL_MS = Number(
+  process.env.FREE_GAMES_CHECK_INTERVAL_MS || 1800000,
+);
 
 const client = new Client({
   intents: [
@@ -36,6 +42,134 @@ const client = new Client({
   ],
 });
 
+function loadFreeGamesState() {
+  try {
+    return JSON.parse(fs.readFileSync(stateFilePath, "utf8"));
+  } catch {
+    return { lastNotified: [] };
+  }
+}
+
+function saveFreeGamesState(state) {
+  fs.writeFileSync(stateFilePath, JSON.stringify(state, null, 2));
+}
+
+async function fetchEpicFreeGames() {
+  const response = await fetch(
+    "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=TR&allowCountries=TR",
+  );
+
+  if (!response.ok) {
+    throw new Error(`Epic Games API hatası: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const elements = data?.data?.Catalog?.searchStore?.elements || [];
+
+  return elements
+    .filter((item) => {
+      const price = item?.price?.totalPrice;
+      const isFree = price?.discountPrice === 0 && price?.originalPrice === 0;
+      return isFree && (item?.promotions?.promotionalOffers?.length > 0 || item?.productSlug);
+    })
+    .map((item) => ({
+      source: "epic",
+      title: item.title || item.name || "Bilinmeyen Oyun",
+      slug: `epic:${item.productSlug || item.urlSlug || item.title || ""}`,
+      description: item.description || "Ücretsiz oyun fırsatı çıktı!",
+      image:
+        item.keyImages?.find((img) => img.type === "OfferImageWide")?.url ||
+        item.keyImages?.[0]?.url ||
+        "",
+      link: item.urlSlug ? `https://store.epicgames.com/tr/p/${item.urlSlug}` : "",
+    }));
+}
+
+async function fetchSteamFreeGames() {
+  const response = await fetch("https://store.steampowered.com/api/featuredcategories/");
+
+  if (!response.ok) {
+    throw new Error(`Steam API hatası: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const specials = data?.specials?.items || [];
+
+  return specials
+    .filter((item) => {
+      const finalPrice = Number(item?.price?.final ?? 0);
+      const initialPrice = Number(item?.price?.initial ?? 0);
+      return finalPrice <= 0 && initialPrice > 0;
+    })
+    .map((item) => ({
+      source: "steam",
+      title: item.name || "Bilinmeyen Steam Oyunu",
+      slug: `steam:${item.id || item.name}`,
+      description: `${item.name || "Bu oyun"} Steam'de ücretsiz olarak sunuluyor.`,
+      image: item.header_image || item.large_capsule_image || "",
+      link: item.id ? `https://store.steampowered.com/app/${item.id}` : "",
+    }));
+}
+
+async function notifyFreeGames() {
+  if (!FREE_GAMES_CHANNEL_ID) {
+    return;
+  }
+
+  try {
+    const state = loadFreeGamesState();
+    const [epicGames, steamGames] = await Promise.all([
+      fetchEpicFreeGames(),
+      fetchSteamFreeGames(),
+    ]);
+    const freeGames = [...epicGames, ...steamGames];
+    const newGames = freeGames.filter(
+      (game) => !state.lastNotified.includes(game.slug || game.title),
+    );
+
+    if (newGames.length === 0) {
+      return;
+    }
+
+    const channel =
+      client.channels.cache.get(FREE_GAMES_CHANNEL_ID) ||
+      (await client.channels.fetch(FREE_GAMES_CHANNEL_ID).catch(() => null));
+
+    if (!channel?.send) {
+      console.error("Ücretsiz oyun kanalı bulunamadı veya erişilemedi.");
+      return;
+    }
+
+    for (const game of newGames) {
+      const embed = new EmbedBuilder()
+        .setTitle(
+          game.source === "steam"
+            ? `🎮 Steam Ücretsiz Oyun: ${game.title}`
+            : `🆓 Epic Ücretsiz Oyun: ${game.title}`,
+        )
+        .setDescription(`${game.description}\n\nHemen kontrol et!`)
+        .setColor(game.source === "steam" ? "#1B2838" : "#00AEEF")
+        .setTimestamp();
+
+      if (game.image) {
+        embed.setImage(game.image);
+      }
+
+      if (game.link) {
+        embed.setURL(game.link);
+      }
+
+      await channel.send({ embeds: [embed] });
+      state.lastNotified.push(game.slug || game.title);
+    }
+
+    saveFreeGamesState(state);
+    console.log(`${newGames.length} yeni ücretsiz oyun bildirimi gönderildi.`);
+  } catch (error) {
+    console.error("Ücretsiz oyun takip hatası:", error);
+  }
+}
+
 client.once("ready", () => {
   console.log("Akasya Durağı telsizi açıldı, bot hazır!");
 
@@ -43,6 +177,14 @@ client.once("ready", () => {
   client.user.setActivity("!yardım | Akasya Durağı Telsizi", {
     type: ActivityType.Listening,
   });
+
+  if (FREE_GAMES_CHANNEL_ID) {
+    notifyFreeGames();
+    setInterval(notifyFreeGames, FREE_GAMES_CHECK_INTERVAL_MS);
+    console.log(
+      `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Aralık: ${FREE_GAMES_CHECK_INTERVAL_MS / 1000} sn`,
+    );
+  }
 });
 
 // Zibilyon tane replik havuzu
