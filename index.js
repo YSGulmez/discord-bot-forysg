@@ -247,8 +247,12 @@ function getSpidermanEmbed() {
       `Tom Holland'ın başrolünde olduğu yeni Örümcek Adam macerasının vizyona girmesine:\n\n${kalan}`,
     )
     .setColor("#E23636")
-    .setThumbnail("https://cdn.marvel.com/content/2x/smbnd_online_1400x2100_reflection_03.webp")
-    .setFooter({ text: "Now, his true power awakens. || Akasya Durağı Sinema Kulübü Sunar 🍿" })
+    .setThumbnail(
+      "https://cdn.marvel.com/content/2x/smbnd_online_1400x2100_reflection_03.webp",
+    )
+    .setFooter({
+      text: "Now, his true power awakens. || Akasya Durağı Sinema Kulübü Sunar 🍿",
+    })
     .setTimestamp();
 }
 
@@ -263,7 +267,9 @@ function getDoomsdayEmbed() {
       `Robert Downey Jr.'ın **Doctor Doom** olarak Marvel evrenine döndüğü devasa filmin vizyona girmesine:\n\n${kalan}`,
     )
     .setColor("#107C10")
-    .setThumbnail("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtPueAEpeN2w3Gb1niOB_Gpu1yCaLsWNB2O2UTRs703n1TaoUQixT47zU&s=10")
+    .setThumbnail(
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtPueAEpeN2w3Gb1niOB_Gpu1yCaLsWNB2O2UTRs703n1TaoUQixT47zU&s=10",
+    )
     .setFooter({
       text: "New mask, same task. || Akasya Durağı Sinema Kulübü Sunar 🍿",
     })
@@ -281,32 +287,30 @@ client.on("messageCreate", async (message) => {
   // ==========================================
   if (msg === "!yardım" || msg === "!yardim" || msg === "!komutlar") {
     const yardimMesaji = `
-🚕 **AKASYA DURAĞI TELSİZİNE HOŞ GELDİNİZ, USTA!** 🚕
-Duraktaki tüm komutlar aşağıdadır:
+🚕 **AKASYA DURAĞI TELSİZİ - ANA MENÜ** 🚕
+Duraktaki tüm güncel komutlar aşağıdadır usta:
 
-💬 **Coşturma & Eğlence Komutları:**
-• \`sinan\` veya \`sinan kaya\` : Sinan Kaya'nın dertlerini dinlersin.
-• \`usman aga\` : Usman Aga'yı delirtirsin.
-• \`nuri baba\` : Nuri Baba'nın nasihatini alırsın.
-• \`arif\` : Arif'in felsefesini dinlersin.
-• \`temel\` : Temel'den bir uyyy alırsın.
-• \`!replik\` : Duraktan rastgele efsane bir replik fırlatır.
-• \`!atatürk\` : Atatürk'ün fotoğrafını gösterir.
-• \`taksi\` / \`taksi yolla\` : Olduğun ses kanalına girer, kornaya basar/replik çalar ve çıkar.
+🎮 **Ücretsiz Oyun Takibi:**
+• \`!free\` veya \`!bedava\` : Tüm platformlardan beleş oyunları listeler.
+• \`!epic\` : Epic Games için beleş oyunları gösterir.
+• \`!steam\` : Steam için beleş oyunları gösterir.
 
- **Ücretsiz Oyun Takibi (GamerPower):**
-• \`!free\` : Tüm platformlardan beleş oyunları listeler.
-• \`!epic\` : Beleş oyunları gösterir (Epic Games için uyarlanmış).
-• \`!steam\` : Beleş oyunları gösterir (Steam için uyarlanmış).
-• \`!beles\` veya \`!bedava\` : Kısayol komutlar.
+🎬 **Akasya Durağı Sinema Kulübü:**
+• \`!sinema\` veya \`!filmler\` : Aktif tüm vizyon sayaçlarını listeler.
+• \`!spiderman\` veya \`!örümcekadam\` : Spider-Man: Brand New Day sayacını gösterir.
+• \`!doomsday\` veya \`!avengers\` : Avengers: Doomsday sayacını gösterir.
+
+🚖 **Durak Servisleri & Ekstralar:**
+• \`taksi\` veya \`taksi yolla\` : Olduğun ses kanalına girer, taksi sesini çalar ve çıkar.
+• \`!atatürk\` : Ulu Önder Mustafa Kemal Atatürk'ün bir fotoğrafını gösterir.
 
 🛠️ **Moderatör (Güvenlik) Komutları:**
-• \`!sil <sayı>\` : Belirttiğin miktar kadar mesajı anında süpürür. (Örn: \`!sil 10\`)
+• \`!sil <sayı>\` : Belirttiğin miktar kadar mesajı duraktan süpürür. (Örn: \`!sil 10\`)
 • \`!kick @kullanıcı <sebep>\` : Kurallara uymayan tırnakçıyı sunucudan tekmeler.
 • \`!ban @kullanıcı <sebep>\` : Sıkıntı çıkaranı duraktan ömür boyu sürgün eder.
 
-*Akasya Durağı her zaman 10 numara hizmet verir!* 🚖
-        `;
+*Akasya Durağı her zaman 10 numara hizmet verir! Hayırlı işler usta!* 🚖
+    `;
     return message.reply(yardimMesaji);
   }
 
@@ -392,9 +396,6 @@ Duraktaki tüm komutlar aşağıdadır:
     }
   }
 
-  // ==========================================
-  // 2. MARVEL SAYAÇ KOMUTLARI
-  // ==========================================
   // ==========================================
   // 2. MARVEL SAYAÇ KOMUTLARI
   // ==========================================
