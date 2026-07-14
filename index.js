@@ -77,7 +77,7 @@ client.on('messageCreate', async (message) => {
             });
 
             // Proje klasöründeki sesler/taksi.mp3 dosyasını okuyoruz
-            const resource = createAudioResource(path.join(__dirname, 'sesler', 'taksi.mp3'));
+            const resource = createAudioResource(path.join(__dirname, 'Sounds', 'Taksi.mp3'));
             const player = createAudioPlayer();
 
             // Sesi oynatıcıya verip kanala bağlıyoruz
