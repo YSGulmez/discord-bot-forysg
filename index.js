@@ -28,9 +28,6 @@ const {
 const path = require("path");
 const stateFilePath = path.join(__dirname, "free-games-state.json");
 const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID || "1526661101608112158";
-const FREE_GAMES_CHECK_INTERVAL_MS = Number(
-  process.env.FREE_GAMES_CHECK_INTERVAL_MS || 1800000,
-);
 // Aternos ve Minecraft takibi devre dışı bırakıldı
 
 const client = new Client({
@@ -134,6 +131,33 @@ async function notifyFreeGames() {
   }
 }
 
+function scheduleDailyFreeGamesCheck() {
+  const now = new Date();
+  const target = new Date();
+  
+  target.setHours(12, 0, 0, 0); // Bugün saat 12:00:00.000
+  
+  // Eğer bugün saat 12:00 geçtiyse, yarınki 12:00'ye ayarla
+  if (now >= target) {
+    target.setDate(target.getDate() + 1);
+  }
+  
+  const msUntilTarget = target.getTime() - now.getTime();
+  const minutesLeft = (msUntilTarget / 1000 / 60).toFixed(2);
+  console.log(`[SCHEDULE] Bir sonraki ücretsiz oyun kontrolü saat 12:00'da yapılacak. Kalan süre: ${minutesLeft} dakika.`);
+  
+  setTimeout(async () => {
+    try {
+      console.log("[SCHEDULE] Saat 12:00 oldu! Günlük ücretsiz oyun kontrolü başlatılıyor...");
+      await notifyFreeGames();
+    } catch (error) {
+      console.error("Günlük ücretsiz oyun bildirimi hatası:", error);
+    }
+    // Sonraki gün için tekrar zamanla
+    scheduleDailyFreeGamesCheck();
+  }, msUntilTarget);
+}
+
 client.once("ready", () => {
   console.log("Akasya Durağı telsizi açıldı, bot hazır!");
 
@@ -143,10 +167,11 @@ client.once("ready", () => {
   });
 
   if (FREE_GAMES_CHANNEL_ID) {
+    // Bot ilk açıldığında kontrol eder, sonra her gün saat 12:00'da tekrarlar
     notifyFreeGames();
-    setInterval(notifyFreeGames, FREE_GAMES_CHECK_INTERVAL_MS);
+    scheduleDailyFreeGamesCheck();
     console.log(
-      `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Aralık: ${FREE_GAMES_CHECK_INTERVAL_MS / 1000} sn`,
+      `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Her gün saat 12:00'da otomatik kontrol edilecek.`,
     );
   }
 });
