@@ -397,63 +397,6 @@ Duraktaki tüm komutlar aşağıdadır:
     return message.reply(yardimMesaji);
   }
 
-  // ==========================================
-  // ÜCRETSİZ OYUN KOMUTLARI
-  // ==========================================
-  if (msg === "!free") {
-    try {
-      await notifyFreeGames();
-      return message.reply("✅ Ücretsiz oyun kontrolü yapıldı usta! Yeni oyun varsa kanala gönderildi.");
-    } catch (error) {
-      console.error("!free komut hatası:", error);
-      return message.reply("Kontrol sırasında hata oluştu usta.");
-    }
-  }
-
-  if (msg === "!epic") {
-    try {
-      const games = await fetchEpicFreeGames();
-      if (games.length === 0) {
-        return message.reply("😔 Şu an Epic Games'de ücretsiz oyun yok usta.");
-      }
-      for (const game of games) {
-        const embed = new EmbedBuilder()
-          .setTitle(`🆓 Epic Games: ${game.title}`)
-          .setDescription(game.description)
-          .setColor("#00AEEF")
-          .setURL(game.link)
-          .setTimestamp();
-        if (game.image) embed.setImage(game.image);
-        await message.reply({ embeds: [embed] });
-      }
-    } catch (error) {
-      console.error("!epic komut hatası:", error);
-      return message.reply("Epic Games verisi alınamadı usta.");
-    }
-  }
-
-  if (msg === "!steam") {
-    try {
-      const games = await fetchSteamFreeGames();
-      if (games.length === 0) {
-        return message.reply("😔 Şu an Steam'de ücretsiz/indirimli oyun yok usta.");
-      }
-      for (const game of games.slice(0, 5)) { // Max 5 oyun göster
-        const embed = new EmbedBuilder()
-          .setTitle(`🎮 Steam: ${game.title}`)
-          .setDescription(game.description)
-          .setColor("#1B2838")
-          .setURL(game.link)
-          .setTimestamp();
-        if (game.image) embed.setImage(game.image);
-        await message.reply({ embeds: [embed] });
-      }
-    } catch (error) {
-      console.error("!steam komut hatası:", error);
-      return message.reply("Steam verisi alınamadı usta.");
-    }
-  }
-
   if (msg === "!aternos" || msg === "!mc" || msg === "!minecraft") {
     try {
       const status = await getMinecraftServerStatus();
