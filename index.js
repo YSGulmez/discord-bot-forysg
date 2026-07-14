@@ -27,7 +27,8 @@ const {
 } = require("@discordjs/voice");
 const path = require("path");
 const stateFilePath = path.join(__dirname, "free-games-state.json");
-const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID || "1526661101608112158";
+const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID;
+const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
 // Aternos ve Minecraft takibi devre dışı bırakıldı
 
 const client = new Client({
@@ -58,7 +59,9 @@ function saveFreeGamesState(state) {
 
 async function fetchFreeGames() {
   console.log("[DEBUG] GamerPower API çağrılıyor...");
-  const response = await fetch("https://www.gamerpower.com/api/giveaways?type=game&status=active");
+  const response = await fetch(
+    "https://www.gamerpower.com/api/giveaways?type=game&status=active",
+  );
 
   if (!response.ok) {
     console.error(`[ERROR] GamerPower API hatası: ${response.status}`);
@@ -67,7 +70,7 @@ async function fetchFreeGames() {
 
   const data = await response.json();
   console.log("[DEBUG] GamerPower raw giveaways sayısı:", data?.length);
-  
+
   // İlk 10 beleş oyunu döndür
   return (data || []).slice(0, 10).map((game) => ({
     title: game.title || "Bilinmeyen Oyun",
@@ -108,7 +111,9 @@ async function notifyFreeGames() {
     for (const game of newGames) {
       const embed = new EmbedBuilder()
         .setTitle(`🎁 ${game.title}`)
-        .setDescription(`${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`)
+        .setDescription(
+          `${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`,
+        )
         .setColor("#FF6B6B")
         .setTimestamp();
 
@@ -131,65 +136,54 @@ async function notifyFreeGames() {
   }
 }
 
-function scheduleDailyFreeGamesCheck() {
+function scheduleDailyTasks() {
   const now = new Date();
   const target = new Date();
-  
+
   target.setHours(12, 0, 0, 0); // Bugün saat 12:00:00.000
-  
-  // Eğer bugün saat 12:00 geçtiyse, yarınki 12:00'ye ayarla
+
   if (now >= target) {
     target.setDate(target.getDate() + 1);
   }
-  
+
   const msUntilTarget = target.getTime() - now.getTime();
   const minutesLeft = (msUntilTarget / 1000 / 60).toFixed(2);
-  console.log(`[SCHEDULE] Bir sonraki ücretsiz oyun kontrolü saat 12:00'da yapılacak. Kalan süre: ${minutesLeft} dakika.`);
-  
+  console.log(
+    `[SCHEDULE] Bir sonraki günlük görevler saat 12:00'da yapılacak. Kalan süre: ${minutesLeft} dakika.`,
+  );
+
   setTimeout(async () => {
     try {
-      console.log("[SCHEDULE] Saat 12:00 oldu! Günlük ücretsiz oyun kontrolü başlatılıyor...");
-      await notifyFreeGames();
+      console.log(
+        "[SCHEDULE] Saat 12:00 oldu! Günlük görevler başlatılıyor...",
+      );
+      await notifyFreeGames(); // Beleş oyunları gönderir
+      await notifyMovieCounters(); // Sinema sayaçlarını gönderir
     } catch (error) {
-      console.error("Günlük ücretsiz oyun bildirimi hatası:", error);
+      console.error("Günlük görevler hatası:", error);
     }
     // Sonraki gün için tekrar zamanla
-    scheduleDailyFreeGamesCheck();
+    scheduleDailyTasks();
   }, msUntilTarget);
 }
 
 client.once("ready", () => {
   console.log("Akasya Durağı telsizi açıldı, bot hazır!");
-
-  // Botun durum/aktivite açıklamasını ayarlıyoruz
   client.user.setActivity("!yardım | Akasya Durağı Telsizi", {
     type: ActivityType.Listening,
   });
 
-  if (FREE_GAMES_CHANNEL_ID) {
-    // Bot ilk açıldığında kontrol eder, sonra her gün saat 12:00'da tekrarlar
-    notifyFreeGames();
-    scheduleDailyFreeGamesCheck();
-    console.log(
-      `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Her gün saat 12:00'da otomatik kontrol edilecek.`,
-    );
-  }
-});
+  // İki bildirimi de hemen kontrol etmek/başlatmak için
+  notifyFreeGames();
+  notifyMovieCounters();
 
-// Zibilyon tane replik havuzu
-const replikler = [
-  "Ooo tırnakçı kardeş, naber ya? - Sinan Kaya 🚕",
-  "Bana bak Sinan, yine ne haltlar karıştırıyorsun ulan! - Melahat 😡",
-  "Oy kuymak kafalım benim, uyyy! - Temel 🐟",
-  "Ulan Sinan, senin yüzünden yine karakolluk olduk! - Usman Aga 🪓",
-  "Cezmi bey, tırnakçılara dikkat edelim lütfen. - Mazhar Bey 🕶️",
-  "Seyit kardeş, memleketten tereyağ getirdin mi da? - Temel 🧈",
-  "Hallederiz kadim dostum, hallederiz... - Sinan Kaya 😏",
-  "Kızanlar yine ne işler karıştırıyor be ya! - Usman Aga 🚜",
-  "Hay aksi şeytan! Yine teker patladı... - Nuri Baba 👨‍✈️",
-  "Biz bu durağın direğiyiz direği! - Ali Kemal 🛠️",
-  "Ben bu taksiye canımı verdim be! - Arif Işık 🚖",
-];
+  // Zamanlayıcıyı başlatıyoruz
+  scheduleDailyTasks();
+
+  console.log(
+    `Günlük görev takipçisi aktif. Her gün saat 12:00'da otomatik kontrol edilecek.`,
+  );
+});
 
 // Atatürk görselleri
 const ataturkGorselleri = [
@@ -200,6 +194,81 @@ const ataturkGorselleri = [
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEUVEvyYWHHP-3Tw6b_XM19VbvTsfTVowM9xbfYnbdhAl-ppZzDRJg1ped&s=10",
   "https://kentkulturuvedemokrasidernegi.com/tema/genel/uploads/sayfalar/ataturk.jpg",
 ];
+
+function kalanSureyiHesapla(hedefTarih) {
+  const simdi = new Date();
+  const fark = hedefTarih - simdi;
+
+  if (fark <= 0) {
+    return "VİZYONDA! 🍿🎬";
+  }
+
+  const gun = Math.floor(fark / (1000 * 60 * 60 * 24));
+  const saat = Math.floor((fark % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const dakika = Math.floor((fark % (1000 * 60 * 60)) / (1000 * 60));
+
+  return `⏳ **${gun} Gün, ${saat} Saat, ${dakika} Dakika** kaldı!`;
+}
+
+async function notifyMovieCounters() {
+  if (!GENERAL_CHANNEL_ID) {
+    return; // Kanal ID'si yoksa iptal et
+  }
+
+  try {
+    const channel =
+      client.channels.cache.get(GENERAL_CHANNEL_ID) ||
+      (await client.channels.fetch(GENERAL_CHANNEL_ID).catch(() => null));
+
+    if (!channel?.send) return;
+
+    // Fonksiyonları çağırıp embedleri alıyoruz
+    const embedSpidey = getSpidermanEmbed();
+    const embedDoom = getDoomsdayEmbed();
+
+    await channel.send({
+      content: "🎬 **Akasya Durağı Sinema Kulübü Günlük Hatırlatma!**",
+      embeds: [embedSpidey, embedDoom],
+    });
+    console.log("Günlük sinema sayaçları başarıyla gönderildi.");
+  } catch (error) {
+    console.error("Günlük sinema sayacı gönderilirken hata:", error);
+  }
+}
+
+// Spider-Man Embed Üretici
+function getSpidermanEmbed() {
+  const vizyonTarihi = new Date("2026-07-31T00:00:00+03:00");
+  const kalan = kalanSureyiHesapla(vizyonTarihi);
+
+  return new EmbedBuilder()
+    .setTitle("🕷️ Spider-Man: Brand New Day Sayacı")
+    .setDescription(
+      `Tom Holland'ın başrolünde olduğu yeni Örümcek Adam macerasının vizyona girmesine:\n\n${kalan}`,
+    )
+    .setColor("#E23636")
+    .setThumbnail("https://cdn.marvel.com/content/2x/smbnd_online_1400x2100_reflection_03.webp")
+    .setFooter({ text: "Now, his true power awakens. || Akasya Durağı Sinema Kulübü Sunar 🍿" })
+    .setTimestamp();
+}
+
+// Avengers Doomsday Embed Üretici
+function getDoomsdayEmbed() {
+  const vizyonTarihi = new Date("2026-12-18T00:00:00+03:00");
+  const kalan = kalanSureyiHesapla(vizyonTarihi);
+
+  return new EmbedBuilder()
+    .setTitle("🟢 Avengers: Doomsday Sayacı")
+    .setDescription(
+      `Robert Downey Jr.'ın **Doctor Doom** olarak Marvel evrenine döndüğü devasa filmin vizyona girmesine:\n\n${kalan}`,
+    )
+    .setColor("#107C10")
+    .setThumbnail("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtPueAEpeN2w3Gb1niOB_Gpu1yCaLsWNB2O2UTRs703n1TaoUQixT47zU&s=10")
+    .setFooter({
+      text: "New mask, same task. || Akasya Durağı Sinema Kulübü Sunar 🍿",
+    })
+    .setTimestamp();
+}
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
@@ -241,7 +310,12 @@ Duraktaki tüm komutlar aşağıdadır:
     return message.reply(yardimMesaji);
   }
 
-  if (msg === "!free" || msg === "!free check" || msg === "!beles" || msg === "!bedava") {
+  if (
+    msg === "!free" ||
+    msg === "!free check" ||
+    msg === "!beles" ||
+    msg === "!bedava"
+  ) {
     try {
       const games = await fetchFreeGames();
       if (games.length === 0) {
@@ -251,7 +325,9 @@ Duraktaki tüm komutlar aşağıdadır:
       const embeds = games.slice(0, 5).map((game) => {
         const embed = new EmbedBuilder()
           .setTitle(`🎁 ${game.title}`)
-          .setDescription(`${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`)
+          .setDescription(
+            `${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`,
+          )
           .setColor("#FF6B6B")
           .setTimestamp();
         if (game.image) embed.setImage(game.image);
@@ -271,7 +347,9 @@ Duraktaki tüm komutlar aşağıdadır:
   if (msg === "!epic") {
     try {
       const games = await fetchFreeGames();
-      const filtered = games.filter(g => g.source === "gamerpower").slice(0, 5);
+      const filtered = games
+        .filter((g) => g.source === "gamerpower")
+        .slice(0, 5);
       if (filtered.length === 0) {
         return message.reply("😔 Şu an beleş oyun yok.");
       }
@@ -317,87 +395,56 @@ Duraktaki tüm komutlar aşağıdadır:
   // ==========================================
   // 2. MARVEL SAYAÇ KOMUTLARI
   // ==========================================
-
-  function kalanSureyiHesapla(hedefTarih) {
-    const simdi = new Date();
-    const fark = hedefTarih - simdi;
-
-    if (fark <= 0) {
-      return "VİZYONDA! 🍿🎬";
-    }
-
-    const gun = Math.floor(fark / (1000 * 60 * 60 * 24));
-    const saat = Math.floor((fark % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const dakika = Math.floor((fark % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `⏳ **${gun} Gün, ${saat} Saat, ${dakika} Dakika** kaldı!`;
-  }
+  // ==========================================
+  // 2. MARVEL SAYAÇ KOMUTLARI
+  // ==========================================
 
   if (msg === "!spiderman" || msg === "!spiderman4" || msg === "!örümcekadam") {
-    const vizyonTarihi = new Date("2026-07-31T00:00:00+03:00"); // TR saati ile vizyon
-    const kalan = kalanSureyiHesapla(vizyonTarihi);
-
-    const embed = new EmbedBuilder()
-      .setTitle("🕷️ Spider-Man: Brand New Day Sayacı")
-      .setDescription(
-        `Tom Holland'ın başrolünde olduğu yeni Örümcek Adam macerasının vizyona girmesine:\n\n${kalan}`,
-      )
-      .setColor("#E23636") // Örümcek Adam kırmızısı
-      .setThumbnail("https://i.ibb.co/v4b4XqY/sinan-kaya.jpg") // İstersen buraya film afişi linki de koyabilirsin usta
-      .setFooter({ text: "Akasya Durağı Sinema Kulübü Sunar 🍿" })
-      .setTimestamp();
-
     try {
-      return message.reply({ embeds: [embed] });
+      return message.reply({ embeds: [getSpidermanEmbed()] });
     } catch (err) {
-      console.error(err);
-      return message.reply("Embed göndermek için yetkim yetmiyor usta! Lütfen bot rolümün izinlerini kontrol et.");
+      return message.reply("Embed yetkim yetmiyor usta! Rolümü kontrol et.");
     }
   }
 
-  // AVENGERS DOOMSDAY SAYACI
   if (msg === "!doomsday" || msg === "!avengers" || msg === "!kıyamet") {
-    const vizyonTarihi = new Date("2026-12-18T00:00:00+03:00"); // TR saati ile vizyon
-    const kalan = kalanSureyiHesapla(vizyonTarihi);
-
-    const embed = new EmbedBuilder()
-      .setTitle("🟢 Avengers: Doomsday Sayacı")
-      .setDescription(
-        `Robert Downey Jr.'ın **Doctor Doom** olarak Marvel evrenine döndüğü devasa filmin vizyona girmesine:\n\n${kalan}`,
-      )
-      .setColor("#107C10") // Doctor Doom yeşili
-      .setFooter({ text: "Melahat duymasın, bilet parası Sinan'dan! 🚖" })
-      .setTimestamp();
-
     try {
-      return message.reply({ embeds: [embed] });
+      return message.reply({ embeds: [getDoomsdayEmbed()] });
     } catch (err) {
-      console.error(err);
-      return message.reply("Embed göndermek için yetkim yetmiyor usta! Lütfen bot rolümün izinlerini kontrol et.");
+      return message.reply("Embed yetkim yetmiyor usta! Rolümü kontrol et.");
+    }
+  }
+
+  // YENİ EKLENTİ: İkisini birden çağırmak isterseniz diye
+  if (msg === "!sinema" || msg === "!filmler") {
+    try {
+      return message.reply({
+        content: "🎬 **Akasya Durağı Sinema Kulübü Aktif Vizyon Listesi:**",
+        embeds: [getSpidermanEmbed(), getDoomsdayEmbed()],
+      });
+    } catch (err) {
+      return message.reply("Embed yetkim yetmiyor usta! Rolümü kontrol et.");
     }
   }
 
   // ==========================================
   // 2. MİZAHİ & EĞLENCE KOMUTLARI (ZİBİLYON TANE)
   // ==========================================
-  if (msg === "!replik") {
-    const rastgeleReplik =
-      replikler[Math.floor(Math.random() * replikler.length)];
-    message.reply(rastgeleReplik);
-  }
 
   if (msg === "!atatürk" || msg === "!ataturk") {
     const rastgeleGorsel =
       ataturkGorselleri[Math.floor(Math.random() * ataturkGorselleri.length)];
-    
+
     const embed = new EmbedBuilder()
       .setTitle("🇹🇷 Mustafa Kemal Atatürk")
       .setDescription("Türkiye Cumhuriyeti'nin kurucusu")
       .setImage(rastgeleGorsel)
       .setColor("#CE0E2D") // Türk bayrağı kırmızısı
-      .setFooter({ text: "\"Bir millet yeniden dirilişe, terakkiye, medeniyete gidecek yolu kaybetmiş olsa bile, başında bir rehber bulması halinde, bütün engelleri aşarak; yeniden istikbale doğru koşar.\" - Atatürk" })
+      .setFooter({
+        text: '"Bir millet yeniden dirilişe, terakkiye, medeniyete gidecek yolu kaybetmiş olsa bile, başında bir rehber bulması halinde, bütün engelleri aşarak; yeniden istikbale doğru koşar." - Atatürk',
+      })
       .setTimestamp();
-    
+
     return message.reply({ embeds: [embed] });
   }
 
