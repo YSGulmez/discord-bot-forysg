@@ -38,10 +38,17 @@ const MC_SERVER_CHECK_INTERVAL_MS = Number(
   process.env.MC_SERVER_CHECK_INTERVAL_MS || 60000,
 );
 const ATERNOS_SERVER_ID = process.env.ATERNOS_SERVER_ID;
-const ATERNOS_API_BASE_URL = process.env.ATERNOS_API_BASE_URL || "https://aternos.org/api";
+const ATERNOS_API_BASE_URL = process.env.ATERNOS_API_BASE_URL || "https://aternos.org";
 const ATERNOS_SESSION_COOKIE = process.env.ATERNOS_SESSION_COOKIE || process.env.ATERNOS_COOKIE;
 const ATERNOS_SESSION_TOKEN = process.env.ATERNOS_SESSION_TOKEN;
 const ATERNOS_AUTH_HEADER = process.env.ATERNOS_AUTH_HEADER;
+
+// Aternos API endpoint'leri
+const ATERNOS_API_ENDPOINTS = {
+  start: "/api/start",
+  stop: "/api/stop",
+  status: "/api/status",
+};
 
 const client = new Client({
   intents: [
@@ -209,6 +216,12 @@ async function controlAternosServer(action) {
     throw new Error("ATERNOS_SERVER_ID tanımlı değil.");
   }
 
+  // Action'ı endpoint'e çevir
+  const endpoint = ATERNOS_API_ENDPOINTS[action];
+  if (!endpoint) {
+    throw new Error(`Geçersiz Aternos aksiyonu: ${action}`);
+  }
+
   const headers = {
     "User-Agent": "Mozilla/5.0",
     Accept: "application/json",
@@ -226,7 +239,7 @@ async function controlAternosServer(action) {
     headers.Authorization = ATERNOS_AUTH_HEADER;
   }
 
-  const response = await fetch(`${ATERNOS_API_BASE_URL}/server/${ATERNOS_SERVER_ID}/${action}`, {
+  const response = await fetch(`${ATERNOS_API_BASE_URL}${endpoint}/${ATERNOS_SERVER_ID}`, {
     method: "POST",
     headers,
   });
@@ -276,7 +289,7 @@ async function notifyMinecraftServerStatus() {
       }
     }
 
-    if (!isOnline && wasOnline) {
+    if (!isOnline && wasOnline) { 
       const channel =
         client.channels.cache.get(MC_SERVER_CHANNEL_ID) ||
         (await client.channels.fetch(MC_SERVER_CHANNEL_ID).catch(() => null));
@@ -364,6 +377,16 @@ Duraktaki tüm komutlar aşağıdadır:
 • \`!replik\` : Duraktan rastgele efsane bir replik fırlatır.
 • \`taksi\` / \`taksi yolla\` : Olduğun ses kanalına girer, kornaya basar/replik çalar ve çıkar.
 
+ **Ücretsiz Oyun Takibi:**
+• \`!free\` : Ücretsiz oyun takibini başlatır / kontrol eder.
+• \`!epic\` : Epic Games ücretsiz oyunlarını kontrol eder.
+• \`!steam\` : Steam ücretsiz oyunlarını kontrol eder.
+
+🧱 **Minecraft / Aternos:**
+• \`!aternos\` / \`!mc\` / \`!minecraft\` : Sunucu durumunu gösterir.
+• \`!aternos start\` / \`!mc start\` : Sunucuyu başlatma isteği gönderir.
+• \`!aternos stop\` / \`!mc stop\` : Sunucuyu kapatma isteği gönderir.
+
 🛠️ **Moderatör (Güvenlik) Komutları:**
 • \`!sil <sayı>\` : Belirttiğin miktar kadar mesajı anında süpürür. (Örn: \`!sil 10\`)
 • \`!kick @kullanıcı <sebep>\` : Kurallara uymayan tırnakçıyı sunucudan tekmeler.
@@ -372,6 +395,63 @@ Duraktaki tüm komutlar aşağıdadır:
 *Akasya Durağı her zaman 10 numara hizmet verir!* 🚖
         `;
     return message.reply(yardimMesaji);
+  }
+
+  // ==========================================
+  // ÜCRETSİZ OYUN KOMUTLARI
+  // ==========================================
+  if (msg === "!free") {
+    try {
+      await notifyFreeGames();
+      return message.reply("✅ Ücretsiz oyun kontrolü yapıldı usta! Yeni oyun varsa kanala gönderildi.");
+    } catch (error) {
+      console.error("!free komut hatası:", error);
+      return message.reply("Kontrol sırasında hata oluştu usta.");
+    }
+  }
+
+  if (msg === "!epic") {
+    try {
+      const games = await fetchEpicFreeGames();
+      if (games.length === 0) {
+        return message.reply("😔 Şu an Epic Games'de ücretsiz oyun yok usta.");
+      }
+      for (const game of games) {
+        const embed = new EmbedBuilder()
+          .setTitle(`🆓 Epic Games: ${game.title}`)
+          .setDescription(game.description)
+          .setColor("#00AEEF")
+          .setURL(game.link)
+          .setTimestamp();
+        if (game.image) embed.setImage(game.image);
+        await message.reply({ embeds: [embed] });
+      }
+    } catch (error) {
+      console.error("!epic komut hatası:", error);
+      return message.reply("Epic Games verisi alınamadı usta.");
+    }
+  }
+
+  if (msg === "!steam") {
+    try {
+      const games = await fetchSteamFreeGames();
+      if (games.length === 0) {
+        return message.reply("😔 Şu an Steam'de ücretsiz/indirimli oyun yok usta.");
+      }
+      for (const game of games.slice(0, 5)) { // Max 5 oyun göster
+        const embed = new EmbedBuilder()
+          .setTitle(`🎮 Steam: ${game.title}`)
+          .setDescription(game.description)
+          .setColor("#1B2838")
+          .setURL(game.link)
+          .setTimestamp();
+        if (game.image) embed.setImage(game.image);
+        await message.reply({ embeds: [embed] });
+      }
+    } catch (error) {
+      console.error("!steam komut hatası:", error);
+      return message.reply("Steam verisi alınamadı usta.");
+    }
   }
 
   if (msg === "!aternos" || msg === "!mc" || msg === "!minecraft") {
@@ -418,6 +498,63 @@ Duraktaki tüm komutlar aşağıdadır:
     }
 
     return message.reply("Kullanım: `!aternos start` | `!aternos stop` | `!aternos` ⚙️");
+  }
+
+  // ==========================================
+  // ÜCRETSİZ OYUN KOMUTLARI
+  // ==========================================
+  if (msg === "!free" || msg === "!free check") {
+    try {
+      await notifyFreeGames();
+      return message.reply("✅ Ücretsiz oyun kontrolü yapıldı! Yeni oyun varsa kanala gönderildi.");
+    } catch (error) {
+      console.error("!free komut hatası:", error);
+      return message.reply("❌ Ücretsiz oyun kontrolü sırasında hata oluştu.");
+    }
+  }
+
+  if (msg === "!epic") {
+    try {
+      const games = await fetchEpicFreeGames();
+      if (games.length === 0) {
+        return message.reply("😔 Şu an Epic Games'de ücretsiz oyun yok.");
+      }
+      for (const game of games) {
+        const embed = new EmbedBuilder()
+          .setTitle(`🆓 Epic Games: ${game.title}`)
+          .setDescription(game.description)
+          .setColor("#00AEEF")
+          .setURL(game.link)
+          .setTimestamp();
+        if (game.image) embed.setImage(game.image);
+        await message.reply({ embeds: [embed] });
+      }
+    } catch (error) {
+      console.error("!epic komut hatası:", error);
+      return message.reply("❌ Epic Games verisi alınamadı.");
+    }
+  }
+
+  if (msg === "!steam") {
+    try {
+      const games = await fetchSteamFreeGames();
+      if (games.length === 0) {
+        return message.reply("😔 Şu an Steam'de ücretsiz oyun (indirimli) yok.");
+      }
+      for (const game of games) {
+        const embed = new EmbedBuilder()
+          .setTitle(`🎮 Steam: ${game.title}`)
+          .setDescription(game.description)
+          .setColor("#1B2838")
+          .setURL(game.link)
+          .setTimestamp();
+        if (game.image) embed.setImage(game.image);
+        await message.reply({ embeds: [embed] });
+      }
+    } catch (error) {
+      console.error("!steam komut hatası:", error);
+      return message.reply("❌ Steam verisi alınamadı.");
+    }
   }
 
   // ==========================================
