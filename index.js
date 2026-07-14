@@ -168,14 +168,12 @@ const replikler = [
 
 // Atatürk görselleri
 const ataturkGorselleri = [
-  "https://upload.wikimedia.org/wikipedia/commons/0/0e/Ataturk1930s.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Atat%C3%BCrk_and_Hitler.jpg/440px-Atat%C3%BCrk_and_Hitler.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Ataturk_-_1926.jpg/440px-Ataturk_-_1926.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Atat%C3%BCrk_colorized.jpg/440px-Atat%C3%BCrk_colorized.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Atat%C3%BCrk_-_1920s.jpg/440px-Atat%C3%BCrk_-_1920s.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Mustafa_Kemal_Atat%C3%BCrk%2C_1929.jpg/440px-Mustafa_Kemal_Atat%C3%BCrk%2C_1929.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Ataturk_1935.jpg/440px-Ataturk_1935.jpg",
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Atat%C3%BCrk_-_1934.jpg/440px-Atat%C3%BCrk_-_1934.jpg",
+  "https://cdn2.picryl.com/photo/2017/07/11/ataturk1930s-fe7aac-640.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/3/37/Ataturk_in_1923.jpg?utm_source=tr.wikiquote.org&utm_campaign=index&utm_content=original",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUPyGM8UCzkWH3FfJp09Sm9WcOiQ6X_6BZguLaZX9t3SeMNCrJzr5CzghxZeaT0g_frpUV-w6gBIQ2JEomORV9HsEn4DMfU_H6Y66fnA&s=10",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRssZMa1XVXflbhle_rLesI7BbTHtsfRh4UKJywacp82SCr8d-3RM5g8Pgs&s=10",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEUVEvyYWHHP-3Tw6b_XM19VbvTsfTVowM9xbfYnbdhAl-ppZzDRJg1ped&s=10",
+  "https://kentkulturuvedemokrasidernegi.com/tema/genel/uploads/sayfalar/ataturk.jpg",
 ];
 
 client.on("messageCreate", async (message) => {
