@@ -31,24 +31,7 @@ const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID || "152666110160
 const FREE_GAMES_CHECK_INTERVAL_MS = Number(
   process.env.FREE_GAMES_CHECK_INTERVAL_MS || 1800000,
 );
-const MC_SERVER_HOST = process.env.MC_SERVER_HOST || "akasya_duragi.aternos.me";
-const MC_SERVER_PORT = process.env.MC_SERVER_PORT || "25565";
-const MC_SERVER_CHANNEL_ID = process.env.MC_SERVER_CHANNEL_ID || FREE_GAMES_CHANNEL_ID;
-const MC_SERVER_CHECK_INTERVAL_MS = Number(
-  process.env.MC_SERVER_CHECK_INTERVAL_MS || 60000,
-);
-const ATERNOS_SERVER_ID = process.env.ATERNOS_SERVER_ID;
-const ATERNOS_API_BASE_URL = process.env.ATERNOS_API_BASE_URL || "https://aternos.org";
-const ATERNOS_SESSION_COOKIE = process.env.ATERNOS_SESSION_COOKIE || process.env.ATERNOS_COOKIE;
-const ATERNOS_SESSION_TOKEN = process.env.ATERNOS_SESSION_TOKEN;
-const ATERNOS_AUTH_HEADER = process.env.ATERNOS_AUTH_HEADER;
-
-// Aternos API endpoint'leri
-const ATERNOS_API_ENDPOINTS = {
-  start: "/api/start",
-  stop: "/api/stop",
-  status: "/api/status",
-};
+// Aternos ve Minecraft takibi devre dışı bırakıldı
 
 const client = new Client({
   intents: [
@@ -76,80 +59,28 @@ function saveFreeGamesState(state) {
   fs.writeFileSync(stateFilePath, JSON.stringify(state, null, 2));
 }
 
-async function fetchEpicFreeGames() {
-  console.log("[DEBUG] Epic Games API çağrılıyor...");
-  const response = await fetch(
-    "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=TR&allowCountries=TR",
-  );
+async function fetchFreeGames() {
+  console.log("[DEBUG] GamerPower API çağrılıyor...");
+  const response = await fetch("https://www.gamerpower.com/api/giveaways?type=game&status=active");
 
   if (!response.ok) {
-    console.error(`[ERROR] Epic Games API hatası: ${response.status}`);
-    throw new Error(`Epic Games API hatası: ${response.status}`);
+    console.error(`[ERROR] GamerPower API hatası: ${response.status}`);
+    throw new Error(`GamerPower API hatası: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log("[DEBUG] Epic Games raw data elements sayısı:", data?.data?.Catalog?.searchStore?.elements?.length);
-  const elements = data?.data?.Catalog?.searchStore?.elements || [];
-  const filtered = elements
-    .filter((item) => {
-      const price = item?.price?.totalPrice;
-      const isFree = price?.discountPrice === 0 && price?.originalPrice === 0;
-      console.log("[DEBUG EPIC FILTER]", {
-        title: item?.title || item?.name,
-        price: price,
-        isFree: isFree,
-        hasPromo: item?.promotions?.promotionalOffers?.length > 0,
-        hasSlug: !!item?.productSlug
-      });
-      return isFree && (item?.promotions?.promotionalOffers?.length > 0 || item?.productSlug);
-    });
-  console.log("[DEBUG] Epic Games filtrelenmiş oyun sayısı:", filtered.length);
-  return filtered.map((item) => ({
-      source: "epic",
-      title: item.title || item.name || "Bilinmeyen Oyun",
-      slug: `epic:${item.productSlug || item.urlSlug || item.title || ""}`,
-      description: item.description || "Ücretsiz oyun fırsatı çıktı!",
-      image:
-        item.keyImages?.find((img) => img.type === "OfferImageWide")?.url ||
-        item.keyImages?.[0]?.url ||
-        "",
-      link: item.urlSlug ? `https://store.epicgames.com/tr/p/${item.urlSlug}` : "",
-    }));
-}
-
-async function fetchSteamFreeGames() {
-  console.log("[DEBUG] Steam API çağrılıyor...");
-  const response = await fetch("https://store.steampowered.com/api/featuredcategories/");
-
-  if (!response.ok) {
-    console.error(`[ERROR] Steam API hatası: ${response.status}`);
-    throw new Error(`Steam API hatası: ${response.status}`);
-  }
-
-  const data = await response.json();
-  console.log("[DEBUG] Steam raw specials sayısı:", data?.specials?.items?.length);
-  const specials = data?.specials?.items || [];
-  const filtered = specials
-    .filter((item) => {
-      const finalPrice = Number(item?.price?.final ?? 0);
-      const initialPrice = Number(item?.price?.initial ?? 0);
-      console.log("[DEBUG STEAM FILTER]", {
-        title: item?.name,
-        finalPrice: finalPrice,
-        initialPrice: initialPrice,
-        isFree: finalPrice <= 0 && initialPrice > 0
-      });
-      return finalPrice <= 0 && initialPrice > 0;
-    });
-  console.log("[DEBUG] Steam filtrelenmiş oyun sayısı:", filtered.length);
-  return filtered.map((item) => ({
-      source: "steam",
-      title: item.name || "Bilinmeyen Steam Oyunu",
-      slug: `steam:${item.id || item.name}`,
-      description: `${item.name || "Bu oyun"} Steam'de ücretsiz olarak sunuluyor.`,
-      image: item.header_image || item.large_capsule_image || "",
-      link: item.id ? `https://store.steampowered.com/app/${item.id}` : "",
-    }));
+  console.log("[DEBUG] GamerPower raw giveaways sayısı:", data?.length);
+  
+  // İlk 10 beleş oyunu döndür
+  return (data || []).slice(0, 10).map((game) => ({
+    title: game.title || "Bilinmeyen Oyun",
+    description: game.description || "Ücretsiz oyun!",
+    image: game.image || "",
+    link: game.open_giveaway_url || "",
+    source: "gamerpower",
+    worth: game.worth || "Fiyat bilinmiyor",
+    endDate: game.end_date || "Bilinmiyor",
+  }));
 }
 
 async function notifyFreeGames() {
@@ -159,13 +90,9 @@ async function notifyFreeGames() {
 
   try {
     const state = loadFreeGamesState();
-    const [epicGames, steamGames] = await Promise.all([
-      fetchEpicFreeGames(),
-      fetchSteamFreeGames(),
-    ]);
-    const freeGames = [...epicGames, ...steamGames];
+    const freeGames = await fetchFreeGames();
     const newGames = freeGames.filter(
-      (game) => !state.lastNotified.includes(game.slug || game.title),
+      (game) => !state.lastNotified.includes(game.title),
     );
 
     if (newGames.length === 0) {
@@ -183,13 +110,9 @@ async function notifyFreeGames() {
 
     for (const game of newGames) {
       const embed = new EmbedBuilder()
-        .setTitle(
-          game.source === "steam"
-            ? `🎮 Steam Ücretsiz Oyun: ${game.title}`
-            : `🆓 Epic Ücretsiz Oyun: ${game.title}`,
-        )
-        .setDescription(`${game.description}\n\nHemen kontrol et!`)
-        .setColor(game.source === "steam" ? "#1B2838" : "#00AEEF")
+        .setTitle(`🎁 ${game.title}`)
+        .setDescription(`${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`)
+        .setColor("#FF6B6B")
         .setTimestamp();
 
       if (game.image) {
@@ -201,145 +124,13 @@ async function notifyFreeGames() {
       }
 
       await channel.send({ embeds: [embed] });
-      state.lastNotified.push(game.slug || game.title);
+      state.lastNotified.push(game.title);
     }
 
     saveFreeGamesState(state);
     console.log(`${newGames.length} yeni ücretsiz oyun bildirimi gönderildi.`);
   } catch (error) {
     console.error("Ücretsiz oyun takip hatası:", error);
-  }
-}
-
-async function getMinecraftServerStatus() {
-  const response = await fetch(
-    `https://api.mcsrvstat.us/2/${MC_SERVER_HOST}${MC_SERVER_PORT ? `:${MC_SERVER_PORT}` : ""}`,
-  );
-
-  if (!response.ok) {
-    throw new Error(`Minecraft API hatası: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return {
-    online: Boolean(data?.online),
-    playersOnline: data?.players?.online ?? 0,
-    playersMax: data?.players?.max ?? 0,
-    version: data?.version || "Bilinmiyor",
-    hostname: data?.hostname || `${MC_SERVER_HOST}:${MC_SERVER_PORT}`,
-  };
-}
-
-async function controlAternosServer(action) {
-  console.log("[DEBUG] Aternos API çağrısı başlıyor...");
-  console.log("[DEBUG] Action:", action);
-  console.log("[DEBUG] Server ID:", ATERNOS_SERVER_ID);
-  console.log("[DEBUG] Cookie boş mu?", !ATERNOS_SESSION_COOKIE);
-  
-  if (!ATERNOS_SERVER_ID) {
-    console.error("[ERROR] ATERNOS_SERVER_ID tanımlı değil.");
-    throw new Error("ATERNOS_SERVER_ID tanımlı değil.");
-  }
-
-  // Action'ı endpoint'e çevir
-  const endpoint = ATERNOS_API_ENDPOINTS[action];
-  if (!endpoint) {
-    console.error("[ERROR] Geçersiz Aternos aksiyonu:", action);
-    throw new Error(`Geçersiz Aternos aksiyonu: ${action}`);
-  }
-
-  const headers = {
-    "User-Agent": "Mozilla/5.0",
-    Accept: "application/json",
-  };
-
-  if (ATERNOS_SESSION_COOKIE) {
-    headers.Cookie = ATERNOS_SESSION_COOKIE;
-  }
-
-  if (ATERNOS_SESSION_TOKEN) {
-    headers["X-Session-Token"] = ATERNOS_SESSION_TOKEN;
-  }
-
-  if (ATERNOS_AUTH_HEADER) {
-    headers.Authorization = ATERNOS_AUTH_HEADER;
-  }
-
-  const url = `${ATERNOS_API_BASE_URL}${endpoint}/${ATERNOS_SERVER_ID}`;
-  console.log("[DEBUG] Request URL:", url);
-  
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-  });
-
-  const text = await response.text();
-  let payload = text;
-
-  try {
-    payload = JSON.parse(text);
-  } catch {
-    // Plain text response, ignore
-  }
-
-  return {
-    ok: response.ok,
-    status: response.status,
-    payload,
-  };
-}
-
-async function notifyMinecraftServerStatus() {
-  if (!MC_SERVER_HOST || !MC_SERVER_CHANNEL_ID) {
-    return;
-  }
-
-  try {
-    const state = loadFreeGamesState();
-    const status = await getMinecraftServerStatus();
-    const wasOnline = Boolean(state.minecraftWasOnline);
-    const isOnline = status.online;
-
-    if (isOnline && !wasOnline) {
-      const channel =
-        client.channels.cache.get(MC_SERVER_CHANNEL_ID) ||
-        (await client.channels.fetch(MC_SERVER_CHANNEL_ID).catch(() => null));
-
-      if (channel?.send) {
-        const embed = new EmbedBuilder()
-          .setTitle("🟢 Aternos Sunucusu Açıldı")
-          .setDescription(
-            `${status.hostname} adresindeki sunucu artık açık!\n\nAktif oyuncu: ${status.playersOnline}/${status.playersMax}\nSürüm: ${status.version}`,
-          )
-          .setColor("#2ECC71")
-          .setTimestamp();
-
-        await channel.send({ embeds: [embed] });
-      }
-    }
-
-    if (!isOnline && wasOnline) { 
-      const channel =
-        client.channels.cache.get(MC_SERVER_CHANNEL_ID) ||
-        (await client.channels.fetch(MC_SERVER_CHANNEL_ID).catch(() => null));
-
-      if (channel?.send) {
-        const embed = new EmbedBuilder()
-          .setTitle("🔴 Aternos Sunucusu Kapandı")
-          .setDescription(
-            `${status.hostname} adresindeki sunucu şu an kapalı.`,
-          )
-          .setColor("#E74C3C")
-          .setTimestamp();
-
-        await channel.send({ embeds: [embed] });
-      }
-    }
-
-    state.minecraftWasOnline = isOnline;
-    saveFreeGamesState(state);
-  } catch (error) {
-    console.error("Minecraft sunucu takip hatası:", error);
   }
 }
 
@@ -356,14 +147,6 @@ client.once("ready", () => {
     setInterval(notifyFreeGames, FREE_GAMES_CHECK_INTERVAL_MS);
     console.log(
       `Ücretsiz oyun takipçisi aktif. Kanal: ${FREE_GAMES_CHANNEL_ID} | Aralık: ${FREE_GAMES_CHECK_INTERVAL_MS / 1000} sn`,
-    );
-  }
-
-  if (MC_SERVER_HOST) {
-    notifyMinecraftServerStatus();
-    setInterval(notifyMinecraftServerStatus, MC_SERVER_CHECK_INTERVAL_MS);
-    console.log(
-      `Minecraft sunucu takibi aktif. Sunucu: ${MC_SERVER_HOST}:${MC_SERVER_PORT} | Aralık: ${MC_SERVER_CHECK_INTERVAL_MS / 1000} sn`,
     );
   }
 });
@@ -406,15 +189,11 @@ Duraktaki tüm komutlar aşağıdadır:
 • \`!replik\` : Duraktan rastgele efsane bir replik fırlatır.
 • \`taksi\` / \`taksi yolla\` : Olduğun ses kanalına girer, kornaya basar/replik çalar ve çıkar.
 
- **Ücretsiz Oyun Takibi:**
-• \`!free\` : Ücretsiz oyun takibini başlatır / kontrol eder.
-• \`!epic\` : Epic Games ücretsiz oyunlarını kontrol eder.
-• \`!steam\` : Steam ücretsiz oyunlarını kontrol eder.
-
-🧱 **Minecraft / Aternos:**
-• \`!aternos\` / \`!mc\` / \`!minecraft\` : Sunucu durumunu gösterir.
-• \`!aternos start\` / \`!mc start\` : Sunucuyu başlatma isteği gönderir.
-• \`!aternos stop\` / \`!mc stop\` : Sunucuyu kapatma isteği gönderir.
+ **Ücretsiz Oyun Takibi (GamerPower):**
+• \`!free\` : Tüm platformlardan beleş oyunları listeler.
+• \`!epic\` : Beleş oyunları gösterir (Epic Games için uyarlanmış).
+• \`!steam\` : Beleş oyunları gösterir (Steam için uyarlanmış).
+• \`!beles\` veya \`!bedava\` : Kısayol komutlar.
 
 🛠️ **Moderatör (Güvenlik) Komutları:**
 • \`!sil <sayı>\` : Belirttiğin miktar kadar mesajı anında süpürür. (Örn: \`!sil 10\`)
@@ -426,76 +205,45 @@ Duraktaki tüm komutlar aşağıdadır:
     return message.reply(yardimMesaji);
   }
 
-  if (msg === "!aternos" || msg === "!mc" || msg === "!minecraft") {
+  if (msg === "!free" || msg === "!free check" || msg === "!beles" || msg === "!bedava") {
     try {
-      const status = await getMinecraftServerStatus();
-      const durum = status.online ? "🟢 Açık" : "🔴 Kapalı";
-      return message.reply(
-        `Aternos sunucu durumu: **${durum}**\nAdres: ${status.hostname}\nOyuncu: ${status.playersOnline}/${status.playersMax}\nSürüm: ${status.version}`,
-      );
-    } catch (error) {
-      console.error(error);
-      return message.reply("Sunucu durumu kontrol edilemedi usta.");
-    }
-  }
-
-  if (msg.startsWith("!aternos ") || msg.startsWith("!mc ") || msg.startsWith("!minecraft ")) {
-    const action = args[1]?.toLowerCase();
-    const actionText = args.slice(1).join(" ").toLowerCase();
-
-    if (["start", "başlat", "ac", "aç"].includes(action || actionText)) {
-      try {
-        const result = await controlAternosServer("start");
-        if (result.ok) {
-          return message.reply("Aternos sunucusu başlatma isteği gönderildi usta. ⏳");
-        }
-        return message.reply(`Başlatma isteği gönderilemedi. Durum: ${result.status}`);
-      } catch (error) {
-        console.error(error);
-        return message.reply("Başlatma komutu çalıştırılamadı. Aternos ayarlarını kontrol et.");
+      const games = await fetchFreeGames();
+      if (games.length === 0) {
+        return message.reply("😔 Şu an beleş oyun yok usta.");
       }
-    }
 
-    if (["stop", "durdur", "kapat", "kapat"].includes(action || actionText)) {
-      try {
-        const result = await controlAternosServer("stop");
-        if (result.ok) {
-          return message.reply("Aternos sunucusu kapatma isteği gönderildi usta. ⏳");
-        }
-        return message.reply(`Kapatma isteği gönderilemedi. Durum: ${result.status}`);
-      } catch (error) {
-        console.error(error);
-        return message.reply("Kapatma komutu çalıştırılamadı. Aternos ayarlarını kontrol et.");
+      const embeds = games.slice(0, 5).map((game) => {
+        const embed = new EmbedBuilder()
+          .setTitle(`🎁 ${game.title}`)
+          .setDescription(`${game.description}\n\n**Değeri:** ${game.worth}\n**Bitiş:** ${game.endDate}`)
+          .setColor("#FF6B6B")
+          .setTimestamp();
+        if (game.image) embed.setImage(game.image);
+        if (game.link) embed.setURL(game.link);
+        return embed;
+      });
+
+      for (const embed of embeds) {
+        await message.reply({ embeds: [embed] });
       }
-    }
-
-    return message.reply("Kullanım: `!aternos start` | `!aternos stop` | `!aternos` ⚙️");
-  }
-
-  // ==========================================
-  // ÜCRETSİZ OYUN KOMUTLARI
-  // ==========================================
-  if (msg === "!free" || msg === "!free check") {
-    try {
-      await notifyFreeGames();
-      return message.reply("✅ Ücretsiz oyun kontrolü yapıldı! Yeni oyun varsa kanala gönderildi.");
     } catch (error) {
       console.error("!free komut hatası:", error);
-      return message.reply("❌ Ücretsiz oyun kontrolü sırasında hata oluştu.");
+      return message.reply("❌ Beleş oyun verisi alınamadı.");
     }
   }
 
   if (msg === "!epic") {
     try {
-      const games = await fetchEpicFreeGames();
-      if (games.length === 0) {
-        return message.reply("😔 Şu an Epic Games'de ücretsiz oyun yok.");
+      const games = await fetchFreeGames();
+      const filtered = games.filter(g => g.source === "gamerpower").slice(0, 5);
+      if (filtered.length === 0) {
+        return message.reply("😔 Şu an beleş oyun yok.");
       }
-      for (const game of games) {
+      for (const game of filtered) {
         const embed = new EmbedBuilder()
-          .setTitle(`🆓 Epic Games: ${game.title}`)
+          .setTitle(`🎁 ${game.title}`)
           .setDescription(game.description)
-          .setColor("#00AEEF")
+          .setColor("#FF6B6B")
           .setURL(game.link)
           .setTimestamp();
         if (game.image) embed.setImage(game.image);
@@ -503,21 +251,22 @@ Duraktaki tüm komutlar aşağıdadır:
       }
     } catch (error) {
       console.error("!epic komut hatası:", error);
-      return message.reply("❌ Epic Games verisi alınamadı.");
+      return message.reply("❌ Beleş oyun verisi alınamadı.");
     }
   }
 
   if (msg === "!steam") {
     try {
-      const games = await fetchSteamFreeGames();
-      if (games.length === 0) {
-        return message.reply("😔 Şu an Steam'de ücretsiz oyun (indirimli) yok.");
+      const games = await fetchFreeGames();
+      const filtered = games.slice(0, 5);
+      if (filtered.length === 0) {
+        return message.reply("😔 Şu an beleş oyun yok.");
       }
-      for (const game of games) {
+      for (const game of filtered) {
         const embed = new EmbedBuilder()
-          .setTitle(`🎮 Steam: ${game.title}`)
+          .setTitle(`🎁 ${game.title}`)
           .setDescription(game.description)
-          .setColor("#1B2838")
+          .setColor("#FF6B6B")
           .setURL(game.link)
           .setTimestamp();
         if (game.image) embed.setImage(game.image);
@@ -525,7 +274,7 @@ Duraktaki tüm komutlar aşağıdadır:
       }
     } catch (error) {
       console.error("!steam komut hatası:", error);
-      return message.reply("❌ Steam verisi alınamadı.");
+      return message.reply("❌ Beleş oyun verisi alınamadı.");
     }
   }
 
