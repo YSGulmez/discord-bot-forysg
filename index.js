@@ -16,6 +16,7 @@ const {
   GatewayIntentBits,
   ActivityType,
   PermissionsBitField,
+  EmbedBuilder,
 } = require("discord.js");
 const {
   joinVoiceChannel,
