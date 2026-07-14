@@ -1,3 +1,17 @@
+// Ücretsiz Render (Web Service) için basit bir web sunucusu ekliyoruz
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Bot aktif ve çalışıyor usta!');
+});
+
+app.listen(port, () => {
+    console.log(`Web sunucusu ${port} portunda başlatıldı.`);
+});
+
+//Dc bot
 const { Client, GatewayIntentBits } = require('discord.js');
 
 // Botun kullanacağı yetkileri (Intents) tanımlıyoruz
