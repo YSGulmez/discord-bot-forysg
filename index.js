@@ -209,71 +209,66 @@ async function generateYKSQuestion() {
   }
 }
 
-async function sendDailyAIQuestion() {
-  let channel = targetChannel; // Parametre kontrolü
+// Bu fonksiyonu olduğu gibi yapıştır usta
+async function sendDailyAIQuestion(inputChannel = null) {
+  // inputChannel olarak parametreyi alıyoruz
+  let channel = inputChannel;
+
+  // Eğer parametre boş gelirse (otomatik zamanlayıcı tetiklediyse) ID'den bul
   if (!channel) {
-    // Eğer parametre yoksa ID'yi kullan
     if (!YKS_CHANNEL_ID) return;
     channel =
       client.channels.cache.get(YKS_CHANNEL_ID) ||
       (await client.channels.fetch(YKS_CHANNEL_ID).catch(() => null));
   }
-  if (!YKS_CHANNEL_ID) return;
 
-  try {
-    const channel =
-      client.channels.cache.get(YKS_CHANNEL_ID) ||
-      (await client.channels.fetch(YKS_CHANNEL_ID).catch(() => null));
-
-    if (!channel?.send) return;
-
-    // Discord'a mesajı atmadan hemen önce API'den soruyu üretiyoruz
-    const soruData = await generateYKSQuestion();
-
-    if (!soruData) {
-      await channel.send(
-        "Usta, bizim yapay zeka öğretmenin kafası karıştı, bugün soru hazırlayamadı. Yarına artık! 🚖",
-      );
-      return;
-    }
-
-    const embed = new EmbedBuilder()
-      .setTitle("🎓 Akasya Durağı Yapay Zeka YKS Kampı")
-      .setDescription(
-        "Sıradan sorular bitti! Yapay zeka tarafından bugüne özel, taze ve zorlu bir soru üretildi:",
-      )
-      .setColor("#2ECC71")
-      .addFields(
-        {
-          name: `📚 ${soruData.ders}`,
-          value: `**Soru:**\n${soruData.soru}\n\n**Şıklar:**\n${soruData.secenekler}`,
-          inline: false,
-        },
-        {
-          name: `🧠 Altın Kural (Hap Bilgi)`,
-          value: `> *${soruData.hapBilgi}*`,
-          inline: false,
-        },
-        {
-          name: "💡 Aşırı Detaylı Çözüm",
-          value: `||**Cevap:** ${soruData.dogruCevap}\n\n**Nasıl Çözülür?**\n${soruData.cozum}||`,
-          inline: false,
-        },
-      )
-      .setFooter({
-        text: "Sıfır kopya, %100 AI üretimi. | Saat 16:00 Rutini 🚖",
-      })
-      .setTimestamp();
-
-    await channel.send({
-      content:
-        "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı, toplanın!",
-      embeds: [embed],
-    });
-    console.log("[YKS] Günlük AI sorusu başarıyla gönderildi.");
-  } catch (error) {
-    console.error("Günlük AI sorusu gönderilirken hata:", error);
+  if (!channel?.send) {
+    console.error("[ERROR] Kanal bulunamadı veya gönderim yetkisi yok.");
+    return;
   }
+
+  const soruData = await generateYKSQuestion();
+
+  if (!soruData) {
+    await channel.send(
+      "Usta, yapay zeka hocadan bugün telsiz sesi alamadık, sistem meşgul! 🚖",
+    );
+    return;
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("🎓 Akasya Durağı Yapay Zeka YKS Kampı")
+    .setDescription(
+      "Sıradan sorular bitti! Yapay zeka tarafından bugüne özel soru:",
+    )
+    .setColor("#2ECC71")
+    .addFields(
+      {
+        name: `📚 ${soruData.ders}`,
+        value: `**Soru:**\n${soruData.soru}\n\n**Şıklar:**\n${soruData.secenekler}`,
+        inline: false,
+      },
+      {
+        name: `🧠 Altın Kural (Hap Bilgi)`,
+        value: `> *${soruData.hapBilgi}*`,
+        inline: false,
+      },
+      {
+        name: "💡 Aşırı Detaylı Çözüm",
+        value: `||**Cevap:** ${soruData.dogruCevap}\n\n**Nasıl Çözülür?**\n${soruData.cozum}||`,
+        inline: false,
+      },
+    )
+    .setFooter({
+      text: "Siyah alana tıklayarak çözümü görebilirsin. | Nuri Baba Başarılar Diler! 🚖",
+    })
+    .setTimestamp();
+
+  await channel.send({
+    content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
+    embeds: [embed],
+  });
+  console.log("[YKS] Günlük AI sorusu başarıyla gönderildi.");
 }
 
 client.once("ready", () => {
