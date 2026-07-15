@@ -170,22 +170,10 @@ function scheduleDailyTasks() {
   }, msUntilTarget);
 }
 
-// --- YKS HAP BİLGİ VE GÜNÜN SORUSU SİSTEMİ ---
-function loadYKSData() {
-  try {
-    const rawData = fs.readFileSync(yksDataPath, "utf8");
-    return JSON.parse(rawData);
-  } catch (error) {
-    console.error("YKS veri dosyası okunamadı:", error);
-    return null;
-  }
-}
-
 async function generateYKSQuestion() {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // Bota verdiğimiz emir (Prompt). Burayı ne kadar detaylı yazarsak o kadar kaliteli soru üretir.
     const prompt = `
       Sen profesyonel bir YKS (TYT/AYT) öğretmenisin.
       Bana şu an rastgele olarak Matematik (Problemler veya Geometri) veya Fizik (Mekanik, Elektrik) derslerinden zorlayıcı, yeni nesil bir YKS sorusu hazırla.
@@ -205,6 +193,15 @@ async function generateYKSQuestion() {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text().trim();
+    // JSON ayrıştırma güvenliği için blok temizleme eklendi:
+    let text = response.text().trim();
+    if (text.startsWith("```json")) {
+      text = text.substring(7);
+    }
+    if (text.endsWith("```")) {
+      text = text.substring(0, text.length - 3);
+    }
+    return JSON.parse(text.trim());
 
     // Yapay zekanın döndürdüğü JSON'u temizleyip objeye çeviriyoruz
     const cleanJson = text.replace(/```json/g, "").replace(/```/g, "");
@@ -216,6 +213,14 @@ async function generateYKSQuestion() {
 }
 
 async function sendDailyAIQuestion() {
+  let channel = targetChannel; // Parametre kontrolü
+  if (!channel) {
+    // Eğer parametre yoksa ID'yi kullan
+    if (!YKS_CHANNEL_ID) return;
+    channel =
+      client.channels.cache.get(YKS_CHANNEL_ID) ||
+      (await client.channels.fetch(YKS_CHANNEL_ID).catch(() => null));
+  }
   if (!YKS_CHANNEL_ID) return;
 
   try {
@@ -549,6 +554,21 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   // ==========================================
   // 2. MİZAHİ & EĞLENCE KOMUTLARI (ZİBİLYON TANE)
   // ==========================================
+
+  if (msg === "!yks") {
+    try {
+      const loadingMsg = await message.reply(
+        "🔄 Usta, yapay zeka hocadan taze bir soru çekiyorum...",
+      );
+      await sendDailyAIQuestion(message.channel); // Komutun yazıldığı kanala atar
+      await loadingMsg.delete().catch(() => {});
+    } catch (error) {
+      return message.reply(
+        "❌ Yapay zeka YKS sorusu üretilirken telsiz koptu usta!",
+      );
+    }
+    return;
+  }
 
   if (msg === "!atatürk" || msg === "!ataturk") {
     const rastgeleGorsel =
