@@ -236,9 +236,10 @@ async function sendDailyAIQuestion(inputChannel = null) {
     return;
   }
 
+  // 1. Embed'i sadece soru ve bilgi için kullanalım (Karakter sınırına takılmasın)
   const embed = new EmbedBuilder()
     .setTitle("🎓 Akasya Durağı Yapay Zeka YKS Kampı")
-    .setDescription("Sıradan sorular bitti! İşte günün zorlu sorusu:")
+    .setDescription("Sıradan sorular bitti! İşte günün taze sorusu:")
     .setColor("#2ECC71")
     .addFields(
       {
@@ -255,6 +256,25 @@ async function sendDailyAIQuestion(inputChannel = null) {
     .setFooter({ text: "Nuri Baba Başarılar Diler! 🚖" })
     .setTimestamp();
 
+  // 2. Önce soruyu gönder
+  await channel.send({
+    content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
+    embeds: [embed],
+  });
+
+  // 3. Çözümü embed dışına, ayrı bir mesaj olarak at (2000 karakter sınırı var, daha rahat sığar)
+  const cozumMesaji = `💡 **Detaylı Çözüm:**\n||**Doğru Cevap:** ${soruData.dogruCevap}\n\n${soruData.cozum}||`;
+
+  // Eğer çok çok uzunsa diye bir parça kontrolü
+  if (cozumMesaji.length > 2000) {
+    await channel.send(
+      "💡 **Çözüm:** Çok uzun olduğu için özetle cevap: **" +
+        soruData.dogruCevap +
+        "**",
+    );
+  } else {
+    await channel.send(cozumMesaji);
+  }
   // ÇÖZÜMÜ EMBED DIŞINA VEYA AYRI BİR EMBED'E ATALIM
   // Eğer çözüm çok uzunsa (1024'ü geçiyorsa), embedin içine değil, ayrı bir mesaj olarak gönderelim
   await channel.send({
