@@ -33,6 +33,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const cron = require("node-cron");
 const YKS_CHANNEL_ID = process.env.YKS_CHANNEL_ID;
+let isQuestionSentToday = false; // Telsiz kilidi başlangıçta kapalı
 
 const client = new Client({
   intents: [
@@ -257,15 +258,15 @@ async function sendDailyAIQuestion(inputChannel = null) {
     .setTimestamp();
 
   // 2. Önce soruyu gönder
-  await channel.send({
-    content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
-    embeds: [embed],
-  });
+  // await channel.send({
+  //   content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
+  //   embeds: [embed],
+  // });
 
   // 3. Çözümü embed dışına, ayrı bir mesaj olarak at (2000 karakter sınırı var, daha rahat sığar)
   const cozumMesaji = `💡 **Detaylı Çözüm:**\n||**Doğru Cevap:** ${soruData.dogruCevap}\n\n${soruData.cozum}||`;
 
-  // Eğer çok çok uzunsa diye bir parça kontrolü
+  // Eğer çok çok uzunsa diye bir parça kontrolü  
   if (cozumMesaji.length > 2000) {
     await channel.send(
       "💡 **Çözüm:** Çok uzun olduğu için özetle cevap: **" +
