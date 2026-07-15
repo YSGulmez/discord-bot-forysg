@@ -431,7 +431,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   // 2. MİZAHİ & EĞLENCE KOMUTLARI (ZİBİLYON TANE)
   // ==========================================
 
-  if (msg === "!atatürk" || msg === "!ataturk") {
+  if (msg === "/atatürk" || msg === "/ataturk") {
     const rastgeleGorsel =
       ataturkGorselleri[Math.floor(Math.random() * ataturkGorselleri.length)];
 
@@ -449,6 +449,25 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   }
   if (msg === "sa") {
     return message.reply("Aleyküm selam uşağım! Nasılsın? 🚖");
+  }
+
+  if (msg === "naber" || msg === "ne haber") {
+    return message.reply("İyi usta, taksi çağıran var mı? 🚖");
+  }
+
+  if (
+    msg === "demokratikkongo" ||
+    msg === "demokratik kongo" ||
+    msg === "kongo"
+  ) {
+    return (embed = new EmbedBuilder()
+      .setTitle("🇨🇩 Demokratik Kongo Cumhuriyeti")
+      .setDescription("Bu İş Devrime Gidiyor")
+      .setImage(
+        "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
+      )
+      .setColor("#0da8ca") // Türk bayrağı kırmızısı
+      .setTimestamp());
   }
 
   // ==========================================
