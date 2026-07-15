@@ -553,13 +553,15 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   // ==========================================
 
   if (msg === "!yks") {
+    console.log("[DEBUG] !yks komutu telsizden alındı!"); // Telsiz çalışıyor mu?
     try {
       const loadingMsg = await message.reply(
         "🔄 Usta, yapay zeka hocadan taze bir soru çekiyorum...",
       );
-      await sendDailyAIQuestion(message.channel); // Komutun yazıldığı kanala atar
+      await sendDailyAIQuestion(message.channel);
       await loadingMsg.delete().catch(() => {});
     } catch (error) {
+      console.error("[ERROR] !yks komutu hata verdi:", error); // Hatayı logla
       return message.reply(
         "❌ Yapay zeka YKS sorusu üretilirken telsiz koptu usta!",
       );
