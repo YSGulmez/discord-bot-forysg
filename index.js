@@ -192,15 +192,16 @@ async function generateYKSQuestion() {
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text().trim();
-    // JSON ayrıştırma güvenliği için blok temizleme eklendi:
-    let text = response.text().trim();
+    let text = response.text().trim(); // İlk tanımlama burada
+
+    // Ayıklama yaparken tekrar 'let' veya 'const' kullanma, doğrudan ata:
     if (text.startsWith("```json")) {
       text = text.substring(7);
     }
     if (text.endsWith("```")) {
       text = text.substring(0, text.length - 3);
     }
+
     return JSON.parse(text.trim());
 
     // Yapay zekanın döndürdüğü JSON'u temizleyip objeye çeviriyoruz
