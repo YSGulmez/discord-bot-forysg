@@ -172,43 +172,39 @@ function scheduleDailyTasks() {
 
 async function generateYKSQuestion() {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-      Sen profesyonel bir YKS (TYT/AYT) öğretmenisin.
-      Bana şu an rastgele olarak Matematik (Problemler veya Geometri) veya Fizik (Mekanik, Elektrik) derslerinden zorlayıcı, yeni nesil bir YKS sorusu hazırla.
-      Özellikle mühendislik ve mekatronik gibi alanları hedefleyen öğrencilerin analitik düşünme becerilerini ölçecek kalitede olsun.
-      
-      Yanıtını LÜTFEN SADECE aşağıdaki JSON formatında, eksiksiz ve Markdown kod bloğu KULLANMADAN düz metin olarak ver:
+      Sen profesyonel bir YKS öğretmenisin.
+      Matematik veya Fizik'ten zor bir soru hazırla.
+      Yanıtını SADECE JSON formatında ver. Başka hiçbir açıklama ekleme.
       {
-        "ders": "Ders Adı ve Konusu",
-        "hapBilgi": "Bu konuyu çözmek için bilinmesi gereken çok önemli, altın değerinde bir detay veya formül (detaylı olsun).",
-        "soru": "Sorunun metni.",
-        "secenekler": "A) ... B) ... C) ... D) ... E) ...",
-        "dogruCevap": "Doğru şıkkın harfi",
-        "cozum": "Adım adım, aşırı detaylı ve mantığını anlatan çözüm."
+        "ders": "...",
+        "hapBilgi": "...",
+        "soru": "...",
+        "secenekler": "...",
+        "dogruCevap": "...",
+        "cozum": "..."
       }
     `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    let text = response.text().trim(); // İlk tanımlama burada
+    const rawText = response.text().trim();
 
-    // Ayıklama yaparken tekrar 'let' veya 'const' kullanma, doğrudan ata:
-    if (text.startsWith("```json")) {
-      text = text.substring(7);
+    // LOGLARA BAKALIM (Render panelinde göreceksin)
+    console.log("[DEBUG] AI Yanıtı:", rawText);
+
+    // JSON'u ayıklamak için regex kullanalım
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("AI geçerli bir JSON döndürmedi!");
     }
-    if (text.endsWith("```")) {
-      text = text.substring(0, text.length - 3);
-    }
 
-    return JSON.parse(text.trim());
-
-    // Yapay zekanın döndürdüğü JSON'u temizleyip objeye çeviriyoruz
-    const cleanJson = text.replace(/```json/g, "").replace(/```/g, "");
-    return JSON.parse(cleanJson);
+    return JSON.parse(jsonMatch[0]);
   } catch (error) {
-    console.error("Yapay zekadan soru çekerken hata:", error);
+    // Hatanın sebebini Render panelinde görmek için:
+    console.error("[CRITICAL] YKS Sorusu Üretme Hatası:", error);
     return null;
   }
 }
