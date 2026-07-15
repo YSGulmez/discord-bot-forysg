@@ -463,13 +463,13 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     embed = new EmbedBuilder()
       .setTitle("🇨🇩 Demokratik Kongo Cumhuriyeti")
       .setDescription("Bu İş Devrime Gidiyor")
-      // .setImage(
-      //   "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
-      // )
+      .setImage(
+        "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
+      )
       .setColor("#0da8ca") // Türk bayrağı kırmızısı
       .setTimestamp();
 
-      return message.reply({ embeds: [embed] });
+    return message.reply({ embeds: [embed] });
   }
 
   // ==========================================
