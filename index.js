@@ -238,9 +238,7 @@ async function sendDailyAIQuestion(inputChannel = null) {
 
   const embed = new EmbedBuilder()
     .setTitle("🎓 Akasya Durağı Yapay Zeka YKS Kampı")
-    .setDescription(
-      "Sıradan sorular bitti! Yapay zeka tarafından bugüne özel soru:",
-    )
+    .setDescription("Sıradan sorular bitti! İşte günün zorlu sorusu:")
     .setColor("#2ECC71")
     .addFields(
       {
@@ -253,17 +251,28 @@ async function sendDailyAIQuestion(inputChannel = null) {
         value: `> *${soruData.hapBilgi}*`,
         inline: false,
       },
-      {
-        name: "💡 Aşırı Detaylı Çözüm",
-        value: `||**Cevap:** ${soruData.dogruCevap}\n\n**Nasıl Çözülür?**\n${soruData.cozum}||`,
-        inline: false,
-      },
     )
-    .setFooter({
-      text: "Siyah alana tıklayarak çözümü görebilirsin. | Nuri Baba Başarılar Diler! 🚖",
-    })
+    .setFooter({ text: "Nuri Baba Başarılar Diler! 🚖" })
     .setTimestamp();
 
+  // ÇÖZÜMÜ EMBED DIŞINA VEYA AYRI BİR EMBED'E ATALIM
+  // Eğer çözüm çok uzunsa (1024'ü geçiyorsa), embedin içine değil, ayrı bir mesaj olarak gönderelim
+  await channel.send({
+    content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
+    embeds: [embed],
+  });
+
+  // Çözüm kısmını 1024 karakteri geçmeyecek şekilde kesip gönderiyoruz
+  const cozumMetni = `||**Doğru Cevap:** ${soruData.dogruCevap}\n\n**Ayrıntılı Çözüm:**\n${soruData.cozum}||`;
+
+  if (cozumMetni.length > 2000) {
+    await channel.send(
+      "💡 **Çözüm:** Çok uzun olduğu için buraya sığmadı usta, özetle cevap: " +
+        soruData.dogruCevap,
+    );
+  } else {
+    await channel.send("💡 **Detaylı Çözüm:**\n" + cozumMetni);
+  }
   await channel.send({
     content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
     embeds: [embed],
