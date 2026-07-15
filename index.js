@@ -276,10 +276,10 @@ async function sendDailyAIQuestion(inputChannel = null) {
   } else {
     await channel.send(cozumMesaji);
   }
-  await channel.send({
-    content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
-    embeds: [embed],
-  });
+  // await channel.send({
+  //   content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
+  //   embeds: [embed],
+  // });
 
   // Çözüm kısmını 1024 karakteri geçmeyecek şekilde kesip gönderiyoruz
   //   const cozumMetni = `||**Doğru Cevap:** ${soruData.dogruCevap}\n\n**Ayrıntılı Çözüm:**\n${soruData.cozum}||`;
