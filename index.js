@@ -468,6 +468,8 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
       // )
       .setColor("#0da8ca") // Türk bayrağı kırmızısı
       .setTimestamp();
+
+      return message.reply({ embeds: [embed] });
   }
 
   // ==========================================
