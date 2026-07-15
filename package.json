@@ -8,14 +8,20 @@
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["discord", "bot", "discord.js"],
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
+    "@google/generative-ai": "^0.24.1",
     "discord.js": "^14.26.5",
     "express": "^5.2.1",
+    "node-cron": "^4.6.0",
     "sodium-native": "^5.1.0"
   }
 }

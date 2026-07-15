@@ -29,6 +29,10 @@ const path = require("path");
 const stateFilePath = path.join(__dirname, "free-games-state.json");
 const FREE_GAMES_CHANNEL_ID = process.env.FREE_GAMES_CHANNEL_ID;
 const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const cron = require("node-cron");
+const YKS_CHANNEL_ID = process.env.YKS_CHANNEL_ID;
 
 const client = new Client({
   intents: [
@@ -166,6 +170,110 @@ function scheduleDailyTasks() {
   }, msUntilTarget);
 }
 
+// --- YKS HAP BİLGİ VE GÜNÜN SORUSU SİSTEMİ ---
+function loadYKSData() {
+  try {
+    const rawData = fs.readFileSync(yksDataPath, "utf8");
+    return JSON.parse(rawData);
+  } catch (error) {
+    console.error("YKS veri dosyası okunamadı:", error);
+    return null;
+  }
+}
+
+async function generateYKSQuestion() {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Bota verdiğimiz emir (Prompt). Burayı ne kadar detaylı yazarsak o kadar kaliteli soru üretir.
+    const prompt = `
+      Sen profesyonel bir YKS (TYT/AYT) öğretmenisin.
+      Bana şu an rastgele olarak Matematik (Problemler veya Geometri) veya Fizik (Mekanik, Elektrik) derslerinden zorlayıcı, yeni nesil bir YKS sorusu hazırla.
+      Özellikle mühendislik ve mekatronik gibi alanları hedefleyen öğrencilerin analitik düşünme becerilerini ölçecek kalitede olsun.
+      
+      Yanıtını LÜTFEN SADECE aşağıdaki JSON formatında, eksiksiz ve Markdown kod bloğu KULLANMADAN düz metin olarak ver:
+      {
+        "ders": "Ders Adı ve Konusu",
+        "hapBilgi": "Bu konuyu çözmek için bilinmesi gereken çok önemli, altın değerinde bir detay veya formül (detaylı olsun).",
+        "soru": "Sorunun metni.",
+        "secenekler": "A) ... B) ... C) ... D) ... E) ...",
+        "dogruCevap": "Doğru şıkkın harfi",
+        "cozum": "Adım adım, aşırı detaylı ve mantığını anlatan çözüm."
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
+
+    // Yapay zekanın döndürdüğü JSON'u temizleyip objeye çeviriyoruz
+    const cleanJson = text.replace(/```json/g, "").replace(/```/g, "");
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    console.error("Yapay zekadan soru çekerken hata:", error);
+    return null;
+  }
+}
+
+async function sendDailyAIQuestion() {
+  if (!YKS_CHANNEL_ID) return;
+
+  try {
+    const channel =
+      client.channels.cache.get(YKS_CHANNEL_ID) ||
+      (await client.channels.fetch(YKS_CHANNEL_ID).catch(() => null));
+
+    if (!channel?.send) return;
+
+    // Discord'a mesajı atmadan hemen önce API'den soruyu üretiyoruz
+    const soruData = await generateYKSQuestion();
+
+    if (!soruData) {
+      await channel.send(
+        "Usta, bizim yapay zeka öğretmenin kafası karıştı, bugün soru hazırlayamadı. Yarına artık! 🚖",
+      );
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("🎓 Akasya Durağı Yapay Zeka YKS Kampı")
+      .setDescription(
+        "Sıradan sorular bitti! Yapay zeka tarafından bugüne özel, taze ve zorlu bir soru üretildi:",
+      )
+      .setColor("#2ECC71")
+      .addFields(
+        {
+          name: `📚 ${soruData.ders}`,
+          value: `**Soru:**\n${soruData.soru}\n\n**Şıklar:**\n${soruData.secenekler}`,
+          inline: false,
+        },
+        {
+          name: `🧠 Altın Kural (Hap Bilgi)`,
+          value: `> *${soruData.hapBilgi}*`,
+          inline: false,
+        },
+        {
+          name: "💡 Aşırı Detaylı Çözüm",
+          value: `||**Cevap:** ${soruData.dogruCevap}\n\n**Nasıl Çözülür?**\n${soruData.cozum}||`,
+          inline: false,
+        },
+      )
+      .setFooter({
+        text: "Sıfır kopya, %100 AI üretimi. | Saat 16:00 Rutini 🚖",
+      })
+      .setTimestamp();
+
+    await channel.send({
+      content:
+        "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı, toplanın!",
+      embeds: [embed],
+    });
+    console.log("[YKS] Günlük AI sorusu başarıyla gönderildi.");
+  } catch (error) {
+    console.error("Günlük AI sorusu gönderilirken hata:", error);
+  }
+}
+
 client.once("ready", () => {
   console.log("Akasya Durağı telsizi açıldı, bot hazır!");
   client.user.setActivity("!yardım | Akasya Durağı Telsizi", {
@@ -181,6 +289,17 @@ client.once("ready", () => {
 
   console.log(
     `Günlük görev takipçisi aktif. Her gün saat 12:00'da otomatik kontrol edilecek.`,
+  );
+  cron.schedule(
+    "0 16 * * *",
+    () => {
+      console.log("[CRON] Saat 16:00! Yapay zeka YKS sorusu üretiyor...");
+      sendDailyAIQuestion();
+    },
+    {
+      scheduled: true,
+      timezone: "Europe/Istanbul",
+    },
   );
 });
 
