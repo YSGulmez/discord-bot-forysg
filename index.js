@@ -431,7 +431,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   // 2. MİZAHİ & EĞLENCE KOMUTLARI (ZİBİLYON TANE)
   // ==========================================
 
-  if (msg === "/atatürk" || msg === "/ataturk") {
+  if (msg === "!atatürk" || msg === "!ataturk") {
     const rastgeleGorsel =
       ataturkGorselleri[Math.floor(Math.random() * ataturkGorselleri.length)];
 
@@ -456,9 +456,9 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   }
 
   if (
-    msg === "demokratikkongo" ||
-    msg === "demokratik kongo" ||
-    msg === "kongo"
+    msg === "!demokratikkongo" ||
+    msg === "!demokratik kongo" ||
+    msg === "!kongo"
   ) {
     return (embed = new EmbedBuilder()
       .setTitle("🇨🇩 Demokratik Kongo Cumhuriyeti")
