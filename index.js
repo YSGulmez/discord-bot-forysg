@@ -463,9 +463,9 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     return (embed = new EmbedBuilder()
       .setTitle("🇨🇩 Demokratik Kongo Cumhuriyeti")
       .setDescription("Bu İş Devrime Gidiyor")
-      .setImage(
-        "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
-      )
+      // .setImage(
+      //   "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
+      // )
       .setColor("#0da8ca") // Türk bayrağı kırmızısı
       .setTimestamp());
   }
@@ -563,13 +563,13 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
         {
           name: "🔴 1. Takım (Usman Aga'nın Aslanları)",
           value:
-            takim1.map((isim) => `• **${isim}**`).join("\\n") || "Kimse yok",
+            takim1.map((isim) => `• **${isim}**`).join("\n") || "Kimse yok",
           inline: true,
         },
         {
           name: "🔵 2. Takım (Nuri Baba'nın Yiğitleri)",
           value:
-            takim2.map((isim) => `• **${isim}**`).join("\\n") || "Kimse yok",
+            takim2.map((isim) => `• **${isim}**`).join("\n") || "Kimse yok",
           inline: true,
         },
       )
