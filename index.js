@@ -621,17 +621,17 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     msg === "!demokratik kongo" ||
     msg === "!kongo"
   ) {
-    embed = new EmbedBuilder()
+    const embed = new EmbedBuilder()
       .setTitle("🇨🇩 Demokratik Kongo Cumhuriyeti")
       .setDescription("Bu İş Devrime Gidiyor")
-      .setURL(
+      .setImage(
         "https://images-ext-1.discordapp.net/external/iiQD_r5lYBZqyC068bxTnc4133z3Yy8X0_wm3lfv5Dk/https/static.klipy.com/ii/4493325008d34b7bf8cd6813cd5c1619/10/be/SexXycuQmsfo.mp4",
       )
-      .setColor("#0da8ca") // Türk bayrağı kırmızısı
+      .setColor("#0da8ca")
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
+  } 
 
   if (msg === "kaçın" || msg === "!kaçın" || msg === "!kaç" || msg === "kaç") {
     const videoPath = "./Videos/kaçın.mp4";
