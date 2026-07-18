@@ -633,6 +633,11 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     return message.reply({ embeds: [embed] });
   }
 
+  if (msg === "kaçın") {
+    const videoPath = "./Videos/kaçın.mp4";
+    return message.send({ files: [videoPath] });
+  }
+
   // ==========================================
   // 3. SES KANALINA GİRİP SES DOSYASI OYNATMA
   // ==========================================
