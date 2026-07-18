@@ -633,9 +633,9 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     return message.reply({ embeds: [embed] });
   }
 
-  if (msg === "kaçın") {
+  if (msg === "kaçın" || msg === "!kaçın" || msg === "!kaç" || msg === "kaç") {
     const videoPath = "./Videos/kaçın.mp4";
-    return message.send({ files: [videoPath] });
+    return message.channel.send({ files: [videoPath] });
   }
 
   // ==========================================
