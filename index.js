@@ -171,6 +171,31 @@ function scheduleDailyTasks() {
   }, msUntilTarget);
 }
 
+async function sendQuestionToAI(question) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const prompt = `
+      Sen profesyonel bir YKS öğretmenisin.
+      Kullanıcının sorduğu konuyu detaylı bir şekilde öğret.
+      Yanıtını SADECE metin formatında ver. Başka hiçbir açıklama ekleme.
+      Soru: ${question}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const rawText = response.text().trim();
+
+    // Yanıtı logla
+    console.log("[DEBUG] AI Yanıtı:", rawText);
+
+    return rawText;
+  } catch (error) {
+    console.error("[CRITICAL] Soru Cevaplama Hatası:", error);
+    return null;
+  }
+}
+
 async function generateYKSQuestion() {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -592,6 +617,35 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     return;
   }
 
+  if (msg.startsWith("!konuöğret")) {
+    console.log("[DEBUG] !Konu öğret komutu kullanıldı");
+    try {
+      const konu = message.content.substring(10).trim();
+      if (!konu) {
+        return message.reply(
+          "Usta, hangi konuyu öğrenmek istediğini belirtmelisin! Örnek: `!konuöğret Türev`",
+        );
+      }
+      const loadingMsg = await message.reply(
+        "🔄 Usta, yapay zeka hocaya konuyu iletiyorum...",
+      );
+      const cevap = await sendQuestionToAI(konu);
+      await loadingMsg.delete().catch(() => {});
+      if (cevap) {
+        await message.reply(cevap);
+      } else {
+        await message.reply(
+          "❌ Yapay zeka hocadan cevap alınamadı, telsiz koptu usta!",
+        );
+      }
+    } catch (error) {
+      console.error("[ERROR] !konuöğret komutu hatası:", error);
+      return message.reply(
+        "❌ Yapay zeka hocadan cevap alırken telsiz koptu usta!",
+      );
+    }
+  }
+
   if (msg === "!atatürk" || msg === "!ataturk") {
     const rastgeleGorsel =
       ataturkGorselleri[Math.floor(Math.random() * ataturkGorselleri.length)];
@@ -631,7 +685,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  } 
+  }
 
   if (msg === "kaçın" || msg === "!kaçın" || msg === "!kaç" || msg === "kaç") {
     const videoPath = "./Videos/kaçın.mp4";
