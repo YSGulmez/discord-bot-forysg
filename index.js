@@ -301,27 +301,6 @@ async function sendDailyAIQuestion(inputChannel = null) {
   } else {
     await channel.send(cozumMesaji);
   }
-  // await channel.send({
-  //   content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
-  //   embeds: [embed],
-  // });
-
-  // Çözüm kısmını 1024 karakteri geçmeyecek şekilde kesip gönderiyoruz
-  //   const cozumMetni = `||**Doğru Cevap:** ${soruData.dogruCevap}\n\n**Ayrıntılı Çözüm:**\n${soruData.cozum}||`;
-
-  //   if (cozumMetni.length > 2000) {
-  //     await channel.send(
-  //       "💡 **Çözüm:** Çok uzun olduğu için buraya sığmadı usta, özetle cevap: " +
-  //         soruData.dogruCevap,
-  //     );
-  //   } else {
-  //     await channel.send("💡 **Detaylı Çözüm:**\n" + cozumMetni);
-  //   }
-  //   await channel.send({
-  //     content: "🔔 **Telsizden Anons:** Yapay Zeka Hoca soruları hazırladı!",
-  //     embeds: [embed],
-  //   });
-  //   console.log("[YKS] Günlük AI sorusu başarıyla gönderildi.");
 }
 
 client.once("ready", () => {
@@ -632,7 +611,12 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
       const cevap = await sendQuestionToAI(konu);
       await loadingMsg.delete().catch(() => {});
       if (cevap) {
-        await message.reply(cevap);
+        // Yanıtı 4000 karakterlik parçalara böl
+        const maxLength = 1900;
+        for (let i = 0; i < cevap.length; i += maxLength) {
+          const parca = cevap.substring(i, i + maxLength);
+          await message.reply(parca);
+        }
       } else {
         await message.reply(
           "❌ Yapay zeka hocadan cevap alınamadı, telsiz koptu usta!",
