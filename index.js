@@ -370,37 +370,16 @@ async function notifyMovieCounters() {
     if (!channel?.send) return;
 
     // Fonksiyonları çağırıp embedleri alıyoruz
-    const embedSpidey = getSpidermanEmbed();
     const embedDoom = getDoomsdayEmbed();
 
     await channel.send({
       content: "🎬 **Akasya Durağı Sinema Kulübü Günlük Hatırlatma!**",
-      embeds: [embedSpidey, embedDoom],
+      embeds: [embedDoom],
     });
     console.log("Günlük sinema sayaçları başarıyla gönderildi.");
   } catch (error) {
     console.error("Günlük sinema sayacı gönderilirken hata:", error);
   }
-}
-
-// Spider-Man Embed Üretici
-function getSpidermanEmbed() {
-  const vizyonTarihi = new Date("2026-07-31T00:00:00+03:00");
-  const kalan = kalanSureyiHesapla(vizyonTarihi);
-
-  return new EmbedBuilder()
-    .setTitle("🕷️ Spider-Man: Brand New Day Sayacı")
-    .setDescription(
-      `Tom Holland'ın başrolünde olduğu yeni Örümcek Adam macerasının vizyona girmesine:\n\n${kalan}`,
-    )
-    .setColor("#E23636")
-    .setThumbnail(
-      "https://cdn.marvel.com/content/2x/smbnd_online_1400x2100_reflection_03.webp",
-    )
-    .setFooter({
-      text: "Now, his true power awakens. || Akasya Durağı Sinema Kulübü Sunar 🍿",
-    })
-    .setTimestamp();
 }
 
 // Avengers Doomsday Embed Üretici
@@ -444,7 +423,6 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
 
 🎬 **Akasya Durağı Sinema Kulübü:**
 • \`!sinema\` veya \`!filmler\` : Aktif tüm vizyon sayaçlarını listeler.
-• \`!spiderman\` veya \`!örümcekadam\` : Spider-Man: Brand New Day sayacını gösterir.
 • \`!doomsday\` veya \`!avengers\` : Avengers: Doomsday sayacını gösterir.
 
 🚖 **Durak Servisleri & Ekstralar:**
@@ -547,13 +525,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
   // 2. MARVEL SAYAÇ KOMUTLARI
   // ==========================================
 
-  if (msg === "!spiderman" || msg === "!spiderman4" || msg === "!örümcekadam") {
-    try {
-      return message.reply({ embeds: [getSpidermanEmbed()] });
-    } catch (err) {
-      return message.reply("Embed yetkim yetmiyor usta! Rolümü kontrol et.");
-    }
-  }
+
 
   if (msg === "!doomsday" || msg === "!avengers" || msg === "!kıyamet") {
     try {
@@ -568,7 +540,7 @@ Duraktaki tüm güncel komutlar aşağıdadır usta:
     try {
       return message.reply({
         content: "🎬 **Akasya Durağı Sinema Kulübü Aktif Vizyon Listesi:**",
-        embeds: [getSpidermanEmbed(), getDoomsdayEmbed()],
+        embeds: [-getDoomsdayEmbed()],
       });
     } catch (err) {
       return message.reply("Embed yetkim yetmiyor usta! Rolümü kontrol et.");
