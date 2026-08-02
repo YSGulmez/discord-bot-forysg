@@ -140,35 +140,31 @@ async function notifyFreeGames() {
   }
 }
 
-function scheduleDailyTasks() {
-  const now = new Date();
-  const target = new Date();
-
-  target.setHours(12, 0, 0, 0); // Bugün saat 12:00:00.000
-
-  if (now >= target) {
-    target.setDate(target.getDate() + 1);
+async function runScheduledDailyTasks() {
+  try {
+    console.log("[SCHEDULE] Saat 00:00 oldu! Günlük görevler başlatılıyor...");
+    await notifyFreeGames(); // Beleş oyunları gönderir
+    await notifyMovieCounters(); // Sinema sayaçlarını gönderir
+  } catch (error) {
+    console.error("Günlük görevler hatası:", error);
   }
+}
 
-  const msUntilTarget = target.getTime() - now.getTime();
-  const minutesLeft = (msUntilTarget / 1000 / 60).toFixed(2);
-  console.log(
-    `[SCHEDULE] Bir sonraki günlük görevler saat 12:00'da yapılacak. Kalan süre: ${minutesLeft} dakika.`,
+function startDailyScheduler() {
+  cron.schedule(
+    "0 0 * * *",
+    async () => {
+      await runScheduledDailyTasks();
+    },
+    {
+      scheduled: true,
+      timezone: "Europe/Istanbul",
+    },
   );
 
-  setTimeout(async () => {
-    try {
-      console.log(
-        "[SCHEDULE] Saat 12:00 oldu! Günlük görevler başlatılıyor...",
-      );
-      await notifyFreeGames(); // Beleş oyunları gönderir
-      await notifyMovieCounters(); // Sinema sayaçlarını gönderir
-    } catch (error) {
-      console.error("Günlük görevler hatası:", error);
-    }
-    // Sonraki gün için tekrar zamanla
-    scheduleDailyTasks();
-  }, msUntilTarget);
+  console.log(
+    "Günlük görev takipçisi aktif. Her gün saat 00:00'da otomatik kontrol edilecek.",
+  );
 }
 
 async function sendQuestionToAI(question) {
@@ -309,27 +305,8 @@ client.once("ready", () => {
     type: ActivityType.Listening,
   });
 
-  // İki bildirimi de hemen kontrol etmek/başlatmak için
-  notifyFreeGames();
-  notifyMovieCounters();
-
   // Zamanlayıcıyı başlatıyoruz
-  scheduleDailyTasks();
-
-  console.log(
-    `Günlük görev takipçisi aktif. Her gün saat 12:00'da otomatik kontrol edilecek.`,
-  );
-  cron.schedule(
-    "0 16 * * *",
-    () => {
-      console.log("[CRON] Saat 16:00! Yapay zeka YKS sorusu üretiyor...");
-      sendDailyAIQuestion();
-    },
-    {
-      scheduled: true,
-      timezone: "Europe/Istanbul",
-    },
-  );
+  startDailyScheduler();
 });
 
 // Atatürk görselleri
