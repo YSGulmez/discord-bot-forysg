@@ -1,7 +1,10 @@
 const express = require("express");
 const fs = require("fs");
+const { createRepositoriesHandler } = require("./repository-api");
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.get("/api/repos", createRepositoriesHandler());
 
 app.get("/", (req, res) => {
   res.send("Akasya Durağı 7/24 Aktif usta!");
