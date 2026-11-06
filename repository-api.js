@@ -107,3 +107,104 @@ function createRepositoriesHandler({
 }
 
 module.exports = { createRepositoriesHandler };
+
+function createContributionsHandler({
+  env = process.env,
+  fetchImpl = globalThis.fetch,
+  logger = console,
+  now = Date.now,
+} = {}) {
+  let contributions;
+  let cachedAt = 0;
+  let refreshPromise;
+
+  async function refreshContributions() {
+    if (refreshPromise) return refreshPromise;
+
+    refreshPromise = (async () => {
+      const token = env.GITHUB_TOKEN;
+      const username = env.GITHUB_USERNAME || "YSGulmez";
+      if (!token) throw new Error("GITHUB_TOKEN is not configured.");
+
+      const response = await fetchImpl("https://api.github.com/graphql", {
+        method: "POST",
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "portfolio-contribution-api",
+        },
+        body: JSON.stringify({
+          query: `query($login: String!) {
+            user(login: $login) {
+              contributionsCollection {
+                contributionCalendar {
+                  totalContributions
+                  weeks {
+                    contributionDays { date contributionCount }
+                  }
+                }
+              }
+            }
+          }`,
+          variables: { login: username },
+        }),
+      });
+      if (!response.ok) throw new Error(`GitHub returned ${response.status}.`);
+
+      const payload = await response.json();
+      const calendar = payload?.data?.user?.contributionsCollection?.contributionCalendar;
+      if (!calendar || !Array.isArray(calendar.weeks)) {
+        throw new Error("GitHub returned unexpected contribution data.");
+      }
+
+      const weeks = calendar.weeks.slice(-52);
+      contributions = {
+        totalContributions: calendar.totalContributions,
+        days: weeks.flatMap((week) => {
+          const days = week.contributionDays || [];
+          return [...days.slice(1), days[0]].filter(Boolean).map((day) => ({
+            date: day.date,
+            count: day.contributionCount,
+          }));
+        }),
+      };
+      cachedAt = now();
+      return contributions;
+    })();
+
+    try {
+      return await refreshPromise;
+    } catch (error) {
+      logger.error("GitHub contribution refresh failed:", error);
+      throw error;
+    } finally {
+      refreshPromise = undefined;
+    }
+  }
+
+  return async function handleContributions(request, response) {
+    if (!env.GITHUB_TOKEN) {
+      response.set("Cache-Control", "no-store");
+      return response.status(503).json({ error: "Contribution service is not configured." });
+    }
+
+    try {
+      if (!contributions || now() - cachedAt >= cacheDurationMs) {
+        try {
+          await refreshContributions();
+        } catch (error) {
+          if (!contributions) throw error;
+        }
+      }
+      response.set("Cache-Control", "no-store");
+      return response.json(contributions);
+    } catch {
+      response.set("Cache-Control", "no-store");
+      return response.status(503).json({ error: "Contribution data is temporarily unavailable." });
+    }
+  };
+}
+
+module.exports.createContributionsHandler = createContributionsHandler;
